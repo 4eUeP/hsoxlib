@@ -1,0 +1,49 @@
+name: hsoxlib
+version: 0.0.1.0
+github: "4eUeP/hsoxlib"
+license: BSD3
+license-file: LICENSE
+author: "mu <laxcatmu@gmail.com>"
+maintainer: "mu <laxcatmu@gmail.com>"
+
+extra-source-files:
+  - README.md
+  - ChangeLog.md
+
+synopsis: Haskell binding to libsox.
+category: Sound, Audio, Foreign
+
+description: Please see the README on Github at <https://github.com/4eUeP/hsoxlib#readme>
+
+dependencies:
+  - base >= 4.11 && < 10
+
+ghc-options:
+  - -Wall
+  - -Wcompat
+  - -Widentities
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wpartial-fields
+  - -Wredundant-constraints
+
+build-tools:
+  - hsc2hs
+
+library:
+  source-dirs: src
+  extra-libraries: sox
+
+tests:
+  hsoxlib-test:
+    main: Spec.hs
+    source-dirs: test
+    c-sources: test/Data/cdata.c
+    dependencies:
+      - hsoxlib
+      - hspec
+
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
