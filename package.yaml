@@ -33,6 +33,8 @@ build-tools:
 library:
   source-dirs: src
   extra-libraries: sox
+  other-modules:
+    - Sound.HSoxLib.Internal.Types
 
 tests:
   hsoxlib-test:

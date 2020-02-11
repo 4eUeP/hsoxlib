@@ -4,10 +4,8 @@
 -- You don't want to use this, see "Sound.HSoxLib" instead.
 module Sound.HSoxLib.Internal
   ( module Sound.HSoxLib.Internal.FFI
-  , module Sound.HSoxLib.Internal.Types
   , module Sound.HSoxLib.Internal.Utils
   ) where
 
 import           Sound.HSoxLib.Internal.FFI
-import           Sound.HSoxLib.Internal.Types
 import           Sound.HSoxLib.Internal.Utils

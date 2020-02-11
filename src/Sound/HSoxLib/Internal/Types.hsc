@@ -1,6 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface   #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+-- | Do not use this module, see 'Sound.HSoxLib.Types' instead
 module Sound.HSoxLib.Internal.Types where
 
 #include <sox.h>
@@ -58,9 +59,9 @@ newtype SoxVersionFlag = SoxVersionFlag { soxVersionFlag :: C.CInt }
   deriving (Eq, Storable)
 
 #{enum SoxVersionFlag, SoxVersionFlag
-  , soxFlagNone = sox_version_none
-  , soxFlagPopen = sox_version_have_popen
-  , soxFlagMagic = sox_version_have_magic
+  , soxFlagNone    = sox_version_none
+  , soxFlagPopen   = sox_version_have_popen
+  , soxFlagMagic   = sox_version_have_magic
   , soxFlagThreads = sox_version_have_threads
   , soxFlagMemopen = sox_version_have_memopen
  }
