@@ -1,5 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface   #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# OPTIONS_GHC -Wno-identities         #-}
 
 -- | Do not use this module, see 'Sound.HSoxLib.Types' instead
 module Sound.HSoxLib.Internal.Types where
