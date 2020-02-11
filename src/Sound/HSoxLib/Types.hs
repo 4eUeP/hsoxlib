@@ -15,6 +15,38 @@ module Sound.HSoxLib.Types
   , I.soxFlagMagic
   , I.soxFlagThreads
   , I.soxFlagMemopen
+
+  , I.SoxEncoding
+  , I.encodingUnknown
+  , I.encodingSign2
+  , I.encodingUnsigned
+  , I.encodingFloat
+  , I.encodingFloatText
+  , I.encodingFlac
+  , I.encodingHcom
+  , I.encodingWavpack
+  , I.encodingWavpackf
+  , I.encodingUlaw
+  , I.encodingAlaw
+  , I.encodingG721
+  , I.encodingG723
+  , I.encodingClADPCM
+  , I.encodingClADPCM16
+  , I.encodingMsADPCM
+  , I.encodingImaADPCM
+  , I.encodingOkiADPCM
+  , I.encodingDPCM
+  , I.encodingDWVW
+  , I.encodingDWVWN
+  , I.encodingGSM
+  , I.encodingMP3
+  , I.encodingVorbis
+  , I.encodingAmrWB
+  , I.encodingAmrNB
+  , I.encodingCVSD
+  , I.encodingLPC10
+  , I.encodingOpus
+  , I.soxEncodingsLen
   ) where
 
 import qualified Sound.HSoxLib.Internal.Types as I
