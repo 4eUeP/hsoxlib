@@ -54,6 +54,32 @@ instance Storable SoxVersionInfo where
 
 -------------------------------------------------------------------------------
 
+-- | The libsox-specific error codes.
+newtype SoxError = SoxError { soxECode :: C.CInt }
+  deriving (Eq, Storable)
+
+#{enum SoxError, SoxError
+  , soxSuccess = SOX_SUCCESS
+  , soxEof     = SOX_EOF
+  , soxEhdr    = SOX_EHDR
+  , soxEfmt    = SOX_EFMT
+  , soxEnomem  = SOX_ENOMEM
+  , soxEperm   = SOX_EPERM
+  , soxEnotsup = SOX_ENOTSUP
+  , soxEinval  = SOX_EINVAL
+ }
+
+instance Show SoxError where
+  show (SoxError (#{const SOX_SUCCESS})) = "Succeeded"
+  show (SoxError (#{const SOX_EOF}))     = "End Of File or other error"
+  show (SoxError #{const SOX_EHDR})      = "Invalid Audio Header"
+  show (SoxError #{const SOX_EFMT})      = "Unsupported data format"
+  show (SoxError #{const SOX_ENOMEM})    = "Can't alloc memory"
+  show (SoxError #{const SOX_EPERM})     = "Operation not permitted"
+  show (SoxError #{const SOX_ENOTSUP})   = "Operation not supported"
+  show (SoxError #{const SOX_EINVAL})    = "Invalid argument"
+  show (SoxError n) = "libSoX: unknown error code " ++ show n
+
 -- | Flags indicating whether optional features are present in this build
 -- of libsox.
 newtype SoxVersionFlag = SoxVersionFlag { soxVersionFlag :: C.CInt }

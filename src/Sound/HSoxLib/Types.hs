@@ -16,6 +16,16 @@ module Sound.HSoxLib.Types
   , I.soxFlagThreads
   , I.soxFlagMemopen
 
+  , I.SoxError(..)
+  , I.soxSuccess
+  , I.soxEof
+  , I.soxEhdr
+  , I.soxEfmt
+  , I.soxEnomem
+  , I.soxEperm
+  , I.soxEnotsup
+  , I.soxEinval
+
   , I.SoxEncoding
   , I.encodingUnknown
   , I.encodingSign2

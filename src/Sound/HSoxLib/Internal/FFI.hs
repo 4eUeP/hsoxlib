@@ -16,5 +16,17 @@ foreign import ccall unsafe "sox.h sox_version"
 foreign import ccall unsafe "sox.h sox_version_info"
   c_sox_version_info :: Ptr T.SoxVersionInfo
 
+foreign import ccall unsafe "sox.h sox_format_init"
+  c_sox_format_init :: IO C.CInt
+
+foreign import ccall unsafe "sox.h sox_format_quit"
+  c_sox_format_quit :: IO ()
+
+foreign import ccall unsafe "sox.h sox_init"
+  c_sox_init :: IO C.CInt
+
+foreign import ccall unsafe "sox.h sox_quit"
+  c_sox_quit :: IO C.CInt
+
 foreign import ccall unsafe "sox.h sox_precision"
   c_sox_precision :: T.SoxEncoding -> C.CUInt -> C.CUInt
