@@ -8,6 +8,7 @@ module Sound.HSoxLib.Internal.Types where
 #include <sox.h>
 
 import           Data.Bits                    ((.&.))
+import           Data.Int
 import           Data.Word
 import qualified Foreign.C.Types              as C
 import           Foreign.Storable
@@ -54,6 +55,84 @@ instance Storable SoxVersionInfo where
 
 -------------------------------------------------------------------------------
 
+-- | Signal parameters.
+data SoxSignalinfo =
+  SoxSignalinfo { rate      :: Maybe Double
+                -- ^ samples per second
+                , channels  :: Maybe Word
+                -- ^ number of sound channels
+                , precision :: Maybe Word
+                -- ^ bits per sample
+                , length    :: Maybe Word64
+                -- ^ samples * chans in file, @-1@ if unspecified.
+                , mult      :: Maybe Double
+                -- ^ effects headroom multiplier
+                } deriving (Show)
+
+instance Storable SoxSignalinfo where
+  sizeOf _ = #{size sox_signalinfo_t}
+  alignment _ = #{alignment sox_signalinfo_t}
+  peek ptr =
+    pure SoxSignalinfo
+      <*> (fmap maybeUnspec $ #{peek_double sox_signalinfo_t, rate} ptr)
+      <*> (fmap maybeUnspec $ #{peek_int sox_signalinfo_t, channels} ptr)
+      <*> (fmap maybeUnspec $ #{peek_int sox_signalinfo_t, precision} ptr)
+      <*> (fmap maybeUnspec $ #{peek_int sox_signalinfo_t, length} ptr)
+      <*> (U.peekCDoubleNull =<< #{peek sox_signalinfo_t, mult} ptr)
+    where
+      maybeUnspec :: (Num a, Eq a) => a -> Maybe a
+      maybeUnspec n
+        | n == #{const SOX_UNSPEC} = Nothing
+        | otherwise = Just n
+  poke = error "SoxSignalinfo.poke: NotImplemented."
+
+-- | Encoding parameters.
+data SoxEncodinginfo =
+  SoxEncodinginfo { encoding       :: SoxEncoding
+                  -- ^ format of sample numbers
+                  , bitsPerSample  :: Word
+                  -- ^ 0 if unknown or variable; uncompressed value if lossless;
+                  -- compressed value if lossy
+                  , compression    :: Double
+                  -- ^ compression factor (where applicable)
+                  , reverseBytes   :: SoxOption
+                  -- ^ Should bytes be reversed? If this is default during
+                  -- 'Sound.HSoxLib.Internal.FFI.c_sox_open_read' or
+                  -- 'Sound.HSoxLib.Internal.FFI.c_sox_open_write',
+                  -- libSoX will set them to either no or yes according to
+                  -- the machine or format default.
+                  , reverseNibbles :: SoxOption
+                  -- ^ Should nibbles be reversed? If this is default during
+                  -- 'Sound.HSoxLib.Internal.FFI.c_sox_open_read' or
+                  -- 'Sound.HSoxLib.Internal.FFI.c_sox_open_write',
+                  -- libSoX will set them to either no or yes according to
+                  -- the machine or format default.
+                  , reverseBits    :: SoxOption
+                  -- ^ Should bits be reversed? If this is default during
+                  -- 'Sound.HSoxLib.Internal.FFI.c_sox_open_read' or
+                  -- 'Sound.HSoxLib.Internal.FFI.c_sox_open_write',
+                  -- libSoX will set them to either no or yes according to
+                  -- the machine or format default.
+                  , oppositeEndian :: SoxBool
+                  -- ^ If set to true, the format should reverse its default
+                  -- endianness.
+                  } deriving (Show, Eq)
+
+instance Storable SoxEncodinginfo where
+  sizeOf _ = #{size sox_encodinginfo_t}
+  alignment _ = #{alignment sox_encodinginfo_t}
+  peek ptr =
+    pure SoxEncodinginfo
+      <*> (#{peek sox_encodinginfo_t, encoding} ptr)
+      <*> (#{peek_int sox_encodinginfo_t, bits_per_sample} ptr)
+      <*> (#{peek_double sox_encodinginfo_t, compression} ptr)
+      <*> (#{peek sox_encodinginfo_t, reverse_bytes} ptr)
+      <*> (#{peek sox_encodinginfo_t, reverse_nibbles} ptr)
+      <*> (#{peek sox_encodinginfo_t, reverse_bits} ptr)
+      <*> (#{peek sox_encodinginfo_t, opposite_endian} ptr)
+  poke = error "SoxEncodinginfo.poke: NotImplemented."
+
+
 -- | The libsox-specific error codes.
 newtype SoxError = SoxError { soxECode :: C.CInt }
   deriving (Eq, Storable)
@@ -79,6 +158,37 @@ instance Show SoxError where
   show (SoxError #{const SOX_ENOTSUP})   = "Operation not supported"
   show (SoxError #{const SOX_EINVAL})    = "Invalid argument"
   show (SoxError n) = "libSoX: unknown error code " ++ show n
+
+-- | libsox boolean type
+newtype SoxBool = SoxBool #{type sox_bool}
+  deriving (Eq, Storable)
+
+#{enum SoxBool, SoxBool
+  , soxFalse = sox_false
+  , soxTrue  = sox_true
+ }
+
+instance Show SoxBool where
+  show (SoxBool #{const sox_false}) = "false"
+  show (SoxBool #{const sox_true})  = "true"
+  show (SoxBool n) = error $ "libSoX: invalid SoxBool " ++ show n
+
+-- | no, yes, or default
+-- (default usually implies some kind of auto-detect logic).
+newtype SoxOption = SoxOption #{type sox_option_t}
+  deriving (Eq, Storable)
+
+#{enum SoxOption, SoxOption
+  , soxOptionNo      = sox_option_no
+  , soxOptionYes     = sox_option_yes
+  , soxOptionDefault = sox_option_default
+ }
+
+instance Show SoxOption where
+  show (SoxOption #{const sox_option_no})      = "option_no"
+  show (SoxOption #{const sox_option_yes})     = "option_yes"
+  show (SoxOption #{const sox_option_default}) = "option_default"
+  show (SoxOption n) = error $ "libSoX: invalid SoxOption " ++ show n
 
 -- | Flags indicating whether optional features are present in this build
 -- of libsox.
@@ -175,6 +285,22 @@ instance Show SoxEncoding where
   show (SoxEncoding #{const SOX_ENCODING_LPC10})      = "encodingLPC10"
   show (SoxEncoding #{const SOX_ENCODING_OPUS})       = "encodingOpus"
   show (SoxEncoding n) = error $ "libSoX: invalid encoding " ++ show n
+
+-- | Is file a real file, a pipe, or a url?
+newtype LsxIOType = LsxIOType #{type lsx_io_type}
+  deriving (Eq, Storable)
+
+#{enum LsxIOType, LsxIOType
+  , ioFile = lsx_io_file
+  , ioPipe = lsx_io_pipe
+  , ioURL  = lsx_io_url
+ }
+
+instance Show LsxIOType where
+  show (LsxIOType #{const lsx_io_file}) = "file"
+  show (LsxIOType #{const lsx_io_pipe}) = "pipe"
+  show (LsxIOType #{const lsx_io_url})  = "url"
+  show (LsxIOType n) = error $ "libSoX: invalid LsxIOType " ++ show n
 
 -------------------------------------------------------------------------------
 -- Macros
