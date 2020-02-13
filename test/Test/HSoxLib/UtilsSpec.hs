@@ -1,13 +1,13 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-module Test.HSoxLib.InternalSpec where
+module Test.HSoxLib.UtilsSpec where
 
-import qualified Foreign.C.String             as C
-import qualified Foreign.C.Types              as C
-import           Foreign.Ptr                  (Ptr, nullPtr)
+import qualified Foreign.C.String    as C
+import qualified Foreign.C.Types     as C
+import           Foreign.Ptr         (Ptr, nullPtr)
 import           Test.Hspec
 
-import           Sound.HSoxLib.Internal.Utils as U
+import           Sound.HSoxLib.Utils as U
 
 spec :: Spec
 spec = do

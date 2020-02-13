@@ -34,7 +34,7 @@ library:
   source-dirs: src
   extra-libraries: sox
   other-modules:
-    - Sound.HSoxLib.Internal.Types
+    - Sound.HSoxLib.Types.Internal
 
 tests:
   hsoxlib-test:

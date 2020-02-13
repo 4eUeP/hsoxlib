@@ -1,4 +1,4 @@
-module Sound.HSoxLib.Internal.Utils
+module Sound.HSoxLib.Utils
   ( peekArrayCStrings
   , peekCStringEmpty
   , peekCStringLenEmpty

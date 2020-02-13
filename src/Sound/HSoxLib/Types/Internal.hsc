@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -Wno-identities         #-}
 
 -- | Do not use this module, see 'Sound.HSoxLib.Types' instead
-module Sound.HSoxLib.Internal.Types where
+module Sound.HSoxLib.Types.Internal where
 
 #include <sox.h>
 
@@ -13,7 +13,7 @@ import           Data.Word
 import qualified Foreign.C.Types              as C
 import           Foreign.Storable
 
-import qualified Sound.HSoxLib.Internal.Utils as U
+import qualified Sound.HSoxLib.Utils as U
 
 -------------------------------------------------------------------------------
 

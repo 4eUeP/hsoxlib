@@ -5,16 +5,16 @@ module Sound.HSoxLib.Information
   , soxPrecision
   ) where
 
-import qualified Foreign.C.Types        as C
-import           Foreign.Storable       (peek)
+import qualified Foreign.C.Types     as C
+import           Foreign.Storable    (peek)
 
-import qualified Sound.HSoxLib.Internal.FFI   as I
-import qualified Sound.HSoxLib.Internal.Utils as I
-import qualified Sound.HSoxLib.Types          as T
+import qualified Sound.HSoxLib.FFI   as I
+import qualified Sound.HSoxLib.Types as T
+import qualified Sound.HSoxLib.Utils as U
 
 -- | Return version number string of libsox, for example, "14.4.0".
 soxVersion :: IO String
-soxVersion = I.peekCStringEmpty I.c_sox_version
+soxVersion = U.peekCStringEmpty I.c_sox_version
 
 -- | Get information about this build of libsox.
 soxVersionInfo :: IO T.SoxVersionInfo

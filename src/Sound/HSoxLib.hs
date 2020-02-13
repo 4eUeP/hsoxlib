@@ -9,8 +9,8 @@ module Sound.HSoxLib
 
 import           Sound.HSoxLib.Information
 
-import qualified Sound.HSoxLib.Internal.FFI as I
-import qualified Sound.HSoxLib.Types        as T
+import qualified Sound.HSoxLib.FFI         as I
+import qualified Sound.HSoxLib.Types       as T
 
 -- | Initialize effects library.
 --

@@ -59,4 +59,4 @@ module Sound.HSoxLib.Types
   , I.soxEncodingsLen
   ) where
 
-import qualified Sound.HSoxLib.Internal.Types as I
+import qualified Sound.HSoxLib.Types.Internal as I
