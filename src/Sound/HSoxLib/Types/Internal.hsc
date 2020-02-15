@@ -7,20 +7,38 @@ module Sound.HSoxLib.Types.Internal where
 
 #include <sox.h>
 
-import           Data.Bits                    ((.&.))
+import           Data.Bits           ((.&.))
 import           Data.Int
 import           Data.Word
-import qualified Foreign.C.Types              as C
+import qualified Foreign.C.String    as C
+import qualified Foreign.C.Types     as C
+import qualified Foreign.Marshal     as M
+import           Foreign.Ptr
 import           Foreign.Storable
 
 import qualified Sound.HSoxLib.Utils as U
 
 -------------------------------------------------------------------------------
 
+type FileType = String
+
+type CFileType = C.CString
+
+type CFilePath = C.CString
+
+type SoxSample = SoxInt32
+
+type SoxInt32 = #{type sox_int32_t}
+type SoxInt64 = #{type sox_int64_t}
+type SoxUInt32 = #{type sox_uint32_t}
+type SoxUInt64 = #{type sox_uint64_t}
+
+-------------------------------------------------------------------------------
+
 -- | Information about a build of libsox.
 --
--- Some fields (for example, "versionExtra", "distro", "compiler") will
--- be treated as empty string if there is nothing about this information.
+-- Some fields (for example, 'versionExtra', 'distro', 'compiler') will
+-- return an empty string if there is nothing about this information.
 data SoxVersionInfo =
   SoxVersionInfo { versionFlags :: [SoxVersionFlag]
                  , versionCode  :: Word32
@@ -53,19 +71,85 @@ instance Storable SoxVersionInfo where
       allFlags = [soxFlagPopen, soxFlagMagic, soxFlagThreads, soxFlagMemopen]
   poke = error "SoxVersionInfo.poke: NotImplemented."
 
+-- | Data passed to/from the format handler.
+data SoxFormat =
+  SoxFormat { fmtFilename     :: FilePath
+            -- ^ File name
+            , fmtSignalinfo   :: SoxSignalinfo
+            -- ^ Signal specifications for reader (decoder) or
+            -- writer (encoder).
+            , fmtEncodinginfo :: SoxEncodinginfo
+            -- ^ Encoding specifications for reader (decoder) or
+            -- writer (encoder).
+            , fmtFiletype     :: FileType
+            -- ^ Type of file, as determined by header inspection or libmagic.
+            , fmtOOB          :: SoxOOB
+            -- ^ Out-of-band data.
+            , fmtSeekable     :: SoxBool
+            -- ^ Can seek on this file ?
+            , fmtMode         :: Char
+            -- ^ Read or write mode ('r' or 'w')
+            , fmtOlength      :: Word64
+            -- ^ samples * chans written to file
+            , fmtClips        :: Word64
+            -- ^ Incremented if clipping occurs
+            , fmtSoxErrno     :: C.CInt
+            -- ^ Failure error code
+            , fmtSoxErrStr    :: String
+            -- ^ Failure error text
+            , fmtFp           :: Ptr C.CFile
+            -- ^ File stream pointer
+            , fmtIOType       :: LsxIOType
+            -- ^ Stores whether this is a file, pipe or URL.
+            , fmtTellOff      :: Word64
+            -- ^ Current offset within file.
+            , fmtDataStart    :: Word64
+            -- ^ Offset at which headers end and sound data begins.
+            , fmtHandler      :: Ptr SoxFormatHandler
+            -- ^ Format handler for this file
+            , fmtPriv         :: Ptr ()
+            -- ^ Format handler's private data area
+            }
+
+instance Storable SoxFormat where
+  sizeOf _ = #{size sox_format_t}
+  alignment _ = #{alignment sox_format_t}
+  peek ptr =
+    pure SoxFormat
+      <*> (U.peekCStringEmpty =<< #{peek sox_format_t, filename} ptr)
+      <*> #{peek sox_format_t, signal} ptr
+      <*> #{peek sox_format_t, encoding} ptr
+      <*> (U.peekCStringEmpty =<< #{peek sox_format_t, filetype} ptr)
+      <*> #{peek sox_format_t, oob} ptr
+      <*> #{peek sox_format_t, seekable} ptr
+      <*> #{peek sox_format_t, mode} ptr
+      <*> #{peek_int sox_format_t, olength} ptr
+      <*> #{peek_int sox_format_t, clips} ptr
+      <*> #{peek sox_format_t, sox_errno} ptr
+      -- Caution: sox_errstr in libsox is 256 length char array,
+      -- however, here is not.
+      <*> (C.peekCString $ #{ptr sox_format_t, sox_errstr} ptr)
+      <*> #{peek sox_format_t, fp} ptr
+      <*> #{peek sox_format_t, io_type} ptr
+      <*> #{peek_int sox_format_t, tell_off} ptr
+      <*> #{peek_int sox_format_t, data_start} ptr
+      <*> #{peek sox_format_t, handler} ptr
+      <*> #{peek sox_format_t, priv} ptr
+  poke = error "SoxFormat.poke: NotImplemented."
+
 -------------------------------------------------------------------------------
 
 -- | Signal parameters.
 data SoxSignalinfo =
-  SoxSignalinfo { rate      :: Maybe Double
+  SoxSignalinfo { sigRate      :: Maybe Double
                 -- ^ samples per second
-                , channels  :: Maybe Word
+                , sigChannels  :: Maybe Word
                 -- ^ number of sound channels
-                , precision :: Maybe Word
+                , sigPrecision :: Maybe Word
                 -- ^ bits per sample
-                , length    :: Maybe Word64
+                , sigLength    :: Maybe Word64
                 -- ^ samples * chans in file, @-1@ if unspecified.
-                , mult      :: Maybe Double
+                , sigMult      :: Maybe Double
                 -- ^ effects headroom multiplier
                 } deriving (Show)
 
@@ -85,6 +169,9 @@ instance Storable SoxSignalinfo where
         | n == #{const SOX_UNSPEC} = Nothing
         | otherwise = Just n
   poke = error "SoxSignalinfo.poke: NotImplemented."
+
+defaultSoxSignalinfo :: SoxSignalinfo
+defaultSoxSignalinfo = SoxSignalinfo Nothing Nothing Nothing Nothing Nothing
 
 -- | Encoding parameters.
 data SoxEncodinginfo =
@@ -132,8 +219,101 @@ instance Storable SoxEncodinginfo where
       <*> (#{peek sox_encodinginfo_t, opposite_endian} ptr)
   poke = error "SoxEncodinginfo.poke: NotImplemented."
 
+-- | Basic information about an encoding.
+data SoxEncodingsInfo =
+  SoxEncodingsInfo { encodingFlags :: SoxEncodingsFlag
+                   , encodingName  :: String
+                   , encodingDesc  :: String
+                   } deriving (Show, Eq)
+
+instance Storable SoxEncodingsInfo where
+  sizeOf _ = #{size sox_oob_t}
+  alignment _ = #{alignment sox_oob_t}
+  peek ptr =
+    pure SoxEncodingsInfo
+      <*> #{peek sox_encodings_info_t, flags} ptr
+      <*> (U.peekCStringEmpty =<< #{peek sox_encodings_info_t, name} ptr)
+      <*> (U.peekCStringEmpty =<< #{peek sox_encodings_info_t, desc} ptr)
+  poke = error "SoxEncodingsInfo.poke: NotImplemented."
+
+-- | Comments, instrument info, loop info (out-of-band data).
+data SoxOOB =
+  SoxOOB { oobComments :: [String]
+         -- ^ File's metadata in key=value format.
+         , oobInstr    :: Maybe SoxInstrinfo
+         -- ^ Instrument specification.
+         , oobLoops    :: [SoxLoopinfo]
+         -- ^ Looping specification.
+         -- FIXME: I don't known what this is, emm...
+         -- (In libsox, sox_oob_t.loops is a fixed length array)
+         } deriving (Show)
+
+instance Storable SoxOOB where
+  sizeOf _ = #{size sox_oob_t}
+  alignment _ = #{alignment sox_oob_t}
+  peek ptr =
+    pure SoxOOB
+      <*> (U.peekArrayCStrings =<< #{peek sox_oob_t, comments} ptr)
+      <*> (U.peekMaybeNull =<< #{peek sox_oob_t, instr} ptr)
+      <*> (M.peekArray #{const SOX_MAX_NLOOPS} $ #{ptr sox_oob_t, loops} ptr)
+  poke = error "SoxOOB.poke: NotImplemented."
+
+-- | Instrument information.
+data SoxInstrinfo =
+  SoxInstrinfo { midiNote :: Int8
+               -- ^ for unity pitch playback
+               , midiLow  :: Int8
+               -- ^ MIDI pitch-bend low range
+               , midiHi   :: Int8
+               -- ^ MIDI pitch-bend high range
+               , loopMode :: Word8
+               -- ^ 0=no, 1=forward, 2=forward/back, ...
+               -- TODO: should this be 'SoxLoopFlag'?
+               , nloops   :: Word
+               -- ^ number of active loops (max SOX_MAX_NLOOPS)
+               } deriving (Show)
+
+instance Storable SoxInstrinfo where
+  sizeOf _ = #{size sox_instrinfo_t}
+  alignment _ = #{alignment sox_instrinfo_t}
+  peek ptr =
+    pure SoxInstrinfo
+      <*> (#{peek sox_instrinfo_t, MIDInote} ptr)
+      <*> (#{peek sox_instrinfo_t, MIDIlow} ptr)
+      <*> (#{peek sox_instrinfo_t, MIDIhi} ptr)
+      <*> (#{peek sox_instrinfo_t, loopmode} ptr)
+      <*> (#{peek sox_instrinfo_t, nloops} ptr)
+  poke = error "SoxInstrinfo.poke: NotImplemented."
+
+-- | Looping parameters (out-of-band data).
+data SoxLoopinfo =
+  SoxLoopinfo { loopStart  :: Word64
+              -- ^ first sample
+              , loopLength :: Word64
+              -- ^ length
+              , loopCount  :: Word
+              -- ^ number of repeats, 0=forever
+              , loopType   :: Word8
+              -- ^ 0=no, 1=forward, 2=forward/back, ...
+              -- TODO: should this be 'SoxLoopFlag'?
+              } deriving (Show)
+
+instance Storable SoxLoopinfo where
+  sizeOf _ = #{size sox_loopinfo_t}
+  alignment _ = #{alignment sox_loopinfo_t}
+  peek ptr =
+    pure SoxLoopinfo
+      <*> (#{peek sox_loopinfo_t, start} ptr)
+      <*> (#{peek sox_loopinfo_t, length} ptr)
+      <*> (#{peek sox_loopinfo_t, count} ptr)
+      <*> (#{peek sox_loopinfo_t, type} ptr)
+  poke = error "SoxLoopinfo.poke: NotImplemented."
+
+-------------------------------------------------------------------------------
 
 -- | The libsox-specific error codes.
+--
+-- The implementation is deliberately exposed. :)
 newtype SoxError = SoxError { soxECode :: C.CInt }
   deriving (Eq, Storable)
 
@@ -286,6 +466,64 @@ instance Show SoxEncoding where
   show (SoxEncoding #{const SOX_ENCODING_OPUS})       = "encodingOpus"
   show (SoxEncoding n) = error $ "libSoX: invalid encoding " ++ show n
 
+-- | Loop modes: upper 4 bits mask the loop blass, lower 4 bits describe
+-- the loop behaviour, for example single shot, bidirectional etc.
+newtype SoxLoopFlag = SoxLoopFlag Word
+  deriving (Eq, Storable)
+
+#{enum SoxLoopFlag, SoxLoopFlag
+  , loopNone         = sox_loop_none
+  , loopForward      = sox_loop_forward
+  , loopForwardBack  = sox_loop_forward_back
+  , loop8            = sox_loop_8
+  , loopSustainDecay = sox_loop_sustain_decay
+ }
+
+instance Show SoxLoopFlag where
+  show (SoxLoopFlag #{const sox_loop_none})          = "loop_none"
+  show (SoxLoopFlag #{const sox_loop_forward})       = "loop_forward"
+  show (SoxLoopFlag #{const sox_loop_forward_back})  = "loop_forward_back"
+  show (SoxLoopFlag #{const sox_loop_8})             = "loop_8"
+  show (SoxLoopFlag #{const sox_loop_sustain_decay}) = "loop_sustain_decay"
+  show (SoxLoopFlag n) = error $ "libSoX: invalid SoxLoopFlag " ++ show n
+
+-- | Flags for 'SoxEncodingsInfo': lossless/lossy1/lossy2.
+--
+-- lossy once (lossy1), lossy twice (lossy2), or lossless (none)
+newtype SoxEncodingsFlag = SoxEncodingsFlag #{type sox_encodings_flags_t}
+  deriving (Eq, Storable)
+
+#{enum SoxEncodingsFlag, SoxEncodingsFlag
+  , soxEncodingsNone   = sox_encodings_none
+  , soxEncodingsLossy1 = sox_encodings_lossy1
+  , soxEncodingsLossy2 = sox_encodings_lossy2
+ }
+
+instance Show SoxEncodingsFlag where
+  show (SoxEncodingsFlag #{const sox_encodings_none})   = "none"
+  show (SoxEncodingsFlag #{const sox_encodings_lossy1}) = "lossy1"
+  show (SoxEncodingsFlag #{const sox_encodings_lossy2}) = "lossy2"
+  show (SoxEncodingsFlag n) =
+    error $ "libSoX: invalid SoxEncodingsFlag " ++ show n
+
+-- | Type of plot.
+newtype SoxPlot = SoxPlot #{type sox_plot_t}
+  deriving (Eq, Storable)
+
+#{enum SoxPlot, SoxPlot
+  , soxPlotOff     = sox_plot_off
+  , soxPlotOctave  = sox_plot_octave
+  , soxPlotGnuplot = sox_plot_gnuplot
+  , soxPlotData    = sox_plot_data
+ }
+
+instance Show SoxPlot where
+  show (SoxPlot #{const sox_plot_off})     = "off"
+  show (SoxPlot #{const sox_plot_octave})  = "octave"
+  show (SoxPlot #{const sox_plot_gnuplot}) = "gnuplot"
+  show (SoxPlot #{const sox_plot_data})    = "data"
+  show (SoxPlot n) = error $ "libSoX: invalid SoxPlot " ++ show n
+
 -- | Is file a real file, a pipe, or a url?
 newtype LsxIOType = LsxIOType #{type lsx_io_type}
   deriving (Eq, Storable)
@@ -301,6 +539,10 @@ instance Show LsxIOType where
   show (LsxIOType #{const lsx_io_pipe}) = "pipe"
   show (LsxIOType #{const lsx_io_url})  = "url"
   show (LsxIOType n) = error $ "libSoX: invalid LsxIOType " ++ show n
+
+-------------------------------------------------------------------------------
+
+data SoxFormatHandler
 
 -------------------------------------------------------------------------------
 -- Macros
