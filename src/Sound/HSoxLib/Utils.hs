@@ -3,13 +3,14 @@ module Sound.HSoxLib.Utils
   , peekCStringEmpty
   , peekCStringLenEmpty
   , peekCDoubleNull
+  , peekMaybeNull
   ) where
 
 import qualified Foreign.C.String      as C
 import qualified Foreign.C.Types       as C
 import           Foreign.Marshal.Array (peekArray0)
 import           Foreign.Ptr           (Ptr, nullPtr)
-import           Foreign.Storable      (peek)
+import           Foreign.Storable      (Storable, peek)
 
 -- | Convert an array of C strings end with NULL pointer to haskell list.
 -- For example, given @{"hello", "world", NULL}@ will get
@@ -34,11 +35,18 @@ peekCStringLenEmpty len ptr = maybeNullPeek "" ptr peekfun
   where
     peekfun = (flip . curry $ C.peekCStringLen) len
 
--- | Marshal a pointer to C double into a Haskell Double,
--- if the pointer is NULL, then return Nothing.
+-- | Marshal a pointer to C double into a Haskell Double.
+--
+-- If the pointer is NULL, then return 'Nothing'.
 peekCDoubleNull :: Ptr C.CDouble -> IO (Maybe Double)
 peekCDoubleNull ptr =
   maybeNullPeek Nothing ptr (fmap (Just . realToFrac) . peek)
+
+-- | Read a value from the given memory location.
+--
+-- If the location is $0$ (null pointer), then return 'Nothing'.
+peekMaybeNull :: Storable a => Ptr a -> IO (Maybe a)
+peekMaybeNull ptr = maybeNullPeek Nothing ptr (fmap Just . peek)
 
 -------------------------------------------------------------------------------
 
