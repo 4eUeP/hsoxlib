@@ -15,6 +15,30 @@ import qualified Sound.HSoxLib.Types.Internal as T
 
 -------------------------------------------------------------------------------
 
+-- | Initialize effects library.
+--
+-- Returns 'T.soxSuccess' if successful.
+soxInit :: IO T.SoxError
+soxInit = fmap T.SoxError c_sox_init
+
+-- | Close effects library and unload format handler plugins.
+--
+-- Returns 'T.soxSuccess' if successful.
+soxQuit :: IO T.SoxError
+soxQuit = fmap T.SoxError c_sox_quit
+
+-- | Find and load format handler plugins.
+--
+-- Returns 'T.soxSuccess' if successful.
+soxFormatInit :: IO T.SoxError
+soxFormatInit = fmap T.SoxError c_sox_format_init
+
+-- | Unload format handler plugins.
+soxFormatQuit :: IO ()
+soxFormatQuit = c_sox_format_quit
+
+-------------------------------------------------------------------------------
+
 foreign import ccall unsafe "sox.h sox_version"
   c_sox_version :: C.CString
 

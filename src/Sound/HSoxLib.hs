@@ -1,35 +1,49 @@
 module Sound.HSoxLib
-  ( soxInit
-  , soxQuit
-  , soxFormatInit
-  , soxFormatQuit
+  ( withSox
+  , withSox'
+  , withSoxFormat'
 
   , module Sound.HSoxLib.Information
   ) where
 
-import           Sound.HSoxLib.Information
+import           Control.Exception         (bracket_)
 
-import qualified Sound.HSoxLib.FFI         as I
+import qualified Sound.HSoxLib.FFI         as FFI
+import           Sound.HSoxLib.Information
 import qualified Sound.HSoxLib.Types       as T
 
--- | Initialize effects library.
---
--- Returns 'T.soxSuccess' if successful.
-soxInit :: IO T.SoxError
-soxInit = fmap T.SoxError I.c_sox_init
+-- | Initialization and cleanup.
+-- All libsox actions should be enclosed in this 'withSox'.
+withSox :: IO a -> IO a
+withSox = bracket_ init' quit'
+  where
+    init' = let f = FFI.soxInit >>= assertSucc "soxInit"
+                g = FFI.soxFormatInit >>= assertSucc "soxFormatInit"
+             in f >> g
+    quit' = FFI.soxQuit >>= assertSucc "soxQuit"
 
--- | Close effects library and unload format handler plugins.
+-- | Perform IO between 'soxInit' and 'soxQuit'.
 --
--- Returns 'T.soxSuccess' if successful.
-soxQuit :: IO T.SoxError
-soxQuit = fmap T.SoxError I.c_sox_quit
+-- If the return code from 'soxInit' and 'soxQuit' is not equal to
+-- 'T.soxSuccess', an exception will be raised.
+withSox' :: IO a -> IO a
+withSox' = bracket_ init' quit'
+  where
+    init' = FFI.soxInit >>= assertSucc "soxInit"
+    quit' = FFI.soxQuit >>= assertSucc "soxQuit"
 
--- | Find and load format handler plugins.
+-- | Perform IO between 'soxFormatInit' and 'soxFormatQuit'.
 --
--- Returns 'T.soxSuccess' if successful.
-soxFormatInit :: IO T.SoxError
-soxFormatInit = fmap T.SoxError I.c_sox_format_init
+-- If the return code from 'soxFormatInit' is not equal to 'T.soxSuccess',
+-- an exception will be raised.
+withSoxFormat' :: IO a -> IO a
+withSoxFormat' = bracket_ init' quit'
+  where
+    init' = FFI.soxFormatInit >>= assertSucc "soxFormatInit"
+    quit' = FFI.soxFormatQuit
 
--- | Unload format handler plugins.
-soxFormatQuit :: IO ()
-soxFormatQuit = I.c_sox_format_quit
+-------------------------------------------------------------------------------
+
+assertSucc :: String -> T.SoxError -> IO ()
+assertSucc name ret | ret == T.soxSuccess = return ()
+                    | otherwise = error $ name ++ " failed: " ++ show ret
