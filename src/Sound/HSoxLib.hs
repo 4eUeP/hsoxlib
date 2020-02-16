@@ -1,15 +1,15 @@
 module Sound.HSoxLib
-  ( withSox
+  ( FFI.soxVersion
+  , FFI.soxVersionInfo
+
+  , withSox
   , withSox'
   , withSoxFormat'
-
-  , module Sound.HSoxLib.Information
   ) where
 
 import           Control.Exception         (bracket_)
 
 import qualified Sound.HSoxLib.FFI         as FFI
-import           Sound.HSoxLib.Information
 import qualified Sound.HSoxLib.Types       as T
 
 -- | Initialization and cleanup.
