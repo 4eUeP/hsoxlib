@@ -4,13 +4,17 @@ module Sound.HSoxLib.Utils
   , peekCStringLenEmpty
   , peekCDoubleNull
   , peekMaybeNull
+  , withCreateArray
   ) where
 
 import qualified Foreign.C.String      as C
 import qualified Foreign.C.Types       as C
+import qualified Foreign.ForeignPtr    as P
 import           Foreign.Marshal.Array (peekArray0)
 import           Foreign.Ptr           (Ptr, nullPtr)
 import           Foreign.Storable      (Storable, peek)
+
+import qualified Data.Vector.Storable  as SV
 
 -- | Convert an array of C strings end with NULL pointer to haskell list.
 -- For example, given @{"hello", "world", NULL}@ will get
@@ -47,6 +51,13 @@ peekCDoubleNull ptr =
 -- If the location is $0$ (null pointer), then return 'Nothing'.
 peekMaybeNull :: Storable a => Ptr a -> IO (Maybe a)
 peekMaybeNull ptr = maybeNullPeek Nothing ptr (fmap Just . peek)
+
+withCreateArray :: Storable a => Int -> (Ptr a -> IO r) -> IO (SV.Vector a, r)
+withCreateArray l f = do
+  fptr <- P.mallocForeignPtrArray l
+  P.withForeignPtr fptr $ \p -> do
+    r <- f p
+    return (SV.unsafeFromForeignPtr0 fptr l, r)
 
 -------------------------------------------------------------------------------
 
