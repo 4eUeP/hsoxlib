@@ -2,8 +2,8 @@
 
 module Test.HSoxLib.UtilsSpec where
 
-import qualified Foreign.C.String    as C
-import qualified Foreign.C.Types     as C
+import qualified Foreign.C           as C
+import qualified Foreign.Marshal     as M
 import           Foreign.Ptr         (Ptr, nullPtr)
 import           Test.Hspec
 
@@ -15,12 +15,16 @@ spec = do
   peekCStringEmptySpec
   peekCStringLenEmptySpec
   peekCDoubleNullSpec
+  peekPokeCStringSpec
 
 foreign import ccall unsafe "cdata.h hello_cstring"
   hello_cstring :: C.CString
 
 foreign import ccall unsafe "cdata.h hello_cstrings"
   hello_cstrings :: Ptr C.CString
+
+foreign import ccall unsafe "cdata.h hello_cstrings_0"
+  hello_cstrings_0 :: Ptr C.CString
 
 foreign import ccall unsafe "cdata.h empty_cstrings"
   empty_cstrings :: Ptr C.CString
@@ -32,6 +36,9 @@ peekArrayCStringsSpec :: Spec
 peekArrayCStringsSpec = describe "Utils.peekArrayCStrings" $ do
   it "hello" $
     U.peekArrayCStrings hello_cstrings `shouldReturn` ["hello", "world"]
+
+  it "hello0" $
+    U.peekArrayCStrings hello_cstrings_0 `shouldReturn` ["hello", "world", ""]
 
   it "empty array" $
     U.peekArrayCStrings empty_cstrings `shouldReturn` []
@@ -63,3 +70,17 @@ peekCDoubleNullSpec = describe "Utils.peekCDoubleNull" $ do
 
   it "null pointer" $
     U.peekCDoubleNull nullPtr `shouldReturn` Nothing
+
+peekPokeCStringSpec :: Spec
+peekPokeCStringSpec = describe "peekPokeCStringSpec" $ do
+  let maxLen = 10
+
+  it "Utils.pokeCStringWithTerm" $ do
+    M.allocaArray maxLen $ \p -> do
+      U.pokeCStringWithTerm p "hello"
+      C.peekCString p `shouldReturn` "hello"
+
+  it "Utils.pokeCStringWithTerm: unicode" $ do
+    M.allocaArray maxLen $ \p -> do
+      U.pokeCStringWithTerm p "你好"
+      C.peekCString p `shouldReturn` "你好"

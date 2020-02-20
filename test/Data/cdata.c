@@ -10,6 +10,11 @@ char **hello_cstrings(void) {
   return hello;
 }
 
+char **hello_cstrings_0(void) {
+  static char *hello[] = {"hello", "world", "\0", NULL};
+  return hello;
+}
+
 char **empty_cstrings(void) {
   static char *xs[] = {NULL};
   return xs;
