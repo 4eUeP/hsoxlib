@@ -35,6 +35,7 @@ build-tools:
 library:
   source-dirs: src
   extra-libraries: sox
+  c-sources: csrc/sox_wrap.c
   other-modules:
     - Sound.HSoxLib.Types.Internal
 
