@@ -140,6 +140,12 @@ instance Storable SoxFormat where
       <*> #{peek sox_format_t, priv} ptr
   poke = error "SoxFormat.poke: NotImplemented."
 
+getFmtSignalPtr :: Ptr SoxFormat -> Ptr SoxSignalinfo
+getFmtSignalPtr = #{ptr sox_format_t, signal}
+
+getFmtEncodingPtr :: Ptr SoxFormat -> Ptr SoxEncodinginfo
+getFmtEncodingPtr = #{ptr sox_format_t, encoding}
+
 -------------------------------------------------------------------------------
 
 -- | Signal parameters.
@@ -627,7 +633,19 @@ instance Show LsxIOType where
 
 -------------------------------------------------------------------------------
 
+data SoxEffectsChain
+
+data SoxEffect
+
+-------------------------------------------------------------------------------
+
 data SoxFormatHandler
+
+data SoxEffectHandler
+
+-------------------------------------------------------------------------------
+
+type SoxFlowEffectsCallback a = SoxBool -> Ptr a -> C.CInt
 
 -------------------------------------------------------------------------------
 -- Macros
