@@ -146,6 +146,9 @@ getFmtSignalPtr = #{ptr sox_format_t, signal}
 getFmtEncodingPtr :: Ptr SoxFormat -> Ptr SoxEncodinginfo
 getFmtEncodingPtr = #{ptr sox_format_t, encoding}
 
+getFmtOOBPtr :: Ptr SoxFormat -> Ptr SoxOOB
+getFmtOOBPtr = #{ptr sox_format_t, oob}
+
 -------------------------------------------------------------------------------
 
 -- | Signal parameters.
@@ -321,6 +324,9 @@ instance Storable SoxOOB where
 
 soxMaxNloops :: Int
 soxMaxNloops = #{const SOX_MAX_NLOOPS}
+
+getSoxOOBCommentsPtr :: Ptr SoxOOB -> IO (Ptr SoxComments)
+getSoxOOBCommentsPtr = #{peek sox_oob_t, comments}
 
 freeSoxOOBComments :: Ptr SoxOOB -> IO ()
 freeSoxOOBComments ptr = M.free =<< #{peek sox_oob_t, comments} ptr

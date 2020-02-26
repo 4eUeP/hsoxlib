@@ -4,6 +4,7 @@ module Sound.HSoxLib.Utils
 
   , fromMaybeNew
 
+  , maybePeekCString
   , peekCStringEmpty
   , peekCStringLenEmpty
   , pokeCStringWithTerm
@@ -25,6 +26,21 @@ import           Foreign.Storable     (Storable, peek, peekElemOff)
 
 import qualified Data.Vector.Storable as SV
 
+-- | Read a value from the given memory location.
+--
+-- If the location is $0$ (null pointer), then return 'Nothing'.
+peekMaybeNull :: Storable a => Ptr a -> IO (Maybe a)
+peekMaybeNull = M.maybePeek peek
+
+-- | Marshal a pointer to C double into a Haskell Double.
+--
+-- If the pointer is NULL, then return 'Nothing'.
+peekCDoubleNull :: Ptr C.CDouble -> IO (Maybe Double)
+peekCDoubleNull ptr =
+  maybeNullPeek Nothing ptr (fmap (Just . realToFrac) . peek)
+
+-------------------------------------------------------------------------------
+
 -- | The same as 'C.peekCString', with this function's input can be a
 -- null pointer.
 peekCStringEmpty :: C.CString -> IO String
@@ -37,12 +53,8 @@ peekCStringLenEmpty len ptr = maybeNullPeek "" ptr peekfun
   where
     peekfun = (flip . curry $ C.peekCStringLen) len
 
--- | Marshal a pointer to C double into a Haskell Double.
---
--- If the pointer is NULL, then return 'Nothing'.
-peekCDoubleNull :: Ptr C.CDouble -> IO (Maybe Double)
-peekCDoubleNull ptr =
-  maybeNullPeek Nothing ptr (fmap (Just . realToFrac) . peek)
+maybePeekCString :: C.CString -> IO (Maybe String)
+maybePeekCString = M.maybePeek C.peekCString
 
 -- | Poke string with a null terminator.
 pokeCStringWithTerm :: C.CString -> String -> IO ()
@@ -53,12 +65,6 @@ pokeCString0 marker ptr val = C.withCStringLen s f
   where
     s = val ++ [marker]
     f (p, l) = M.copyArray ptr p l
-
--- | Read a value from the given memory location.
---
--- If the location is $0$ (null pointer), then return 'Nothing'.
-peekMaybeNull :: Storable a => Ptr a -> IO (Maybe a)
-peekMaybeNull ptr = maybeNullPeek Nothing ptr (fmap Just . peek)
 
 -------------------------------------------------------------------------------
 -- Array

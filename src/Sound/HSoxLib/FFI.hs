@@ -6,6 +6,7 @@
 -- You don't want to use this, see "Sound.HSoxLib" instead.
 module Sound.HSoxLib.FFI where
 
+import           Control.Monad                ((<=<))
 import qualified Foreign.C.String             as C
 import qualified Foreign.C.Types              as C
 import qualified Foreign.ForeignPtr           as P
@@ -14,6 +15,7 @@ import           Foreign.Storable             (peek)
 
 import qualified Data.Vector.Storable         as SV
 
+import qualified Sound.HSoxLib.FFI.Internal   as I
 import qualified Sound.HSoxLib.Types          as T
 import qualified Sound.HSoxLib.Types.Internal as T
 import qualified Sound.HSoxLib.Utils          as U
@@ -122,6 +124,12 @@ soxClose :: Ptr T.SoxFormat
          -> IO T.SoxError
          -- ^ returns SOX_SUCCESS if successful.
 soxClose = c_sox_close
+
+-- | Find file's metadata block by a key, ignoring case.
+-- If "key=value" is found, return value, else return 'Nothing'.
+soxFindComment :: Ptr T.SoxComments -> String -> IO (Maybe String)
+soxFindComment ptr key =
+  C.withCString key $ U.maybePeekCString <=< I.c_sox_find_comment ptr
 
 -- | Given an encoding (for example, SIGN2) and the encoded bits_per_sample
 -- (for example, 16), returns the number of useful bits per sample in the

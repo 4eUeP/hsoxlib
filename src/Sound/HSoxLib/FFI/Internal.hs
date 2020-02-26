@@ -9,6 +9,12 @@ import qualified Sound.HSoxLib.Types          as T
 import qualified Sound.HSoxLib.Types.Internal as T
 
 -------------------------------------------------------------------------------
+-- File's metadata
+
+foreign import ccall unsafe "sox.h sox_find_comment"
+  c_sox_find_comment :: Ptr T.SoxComments -> C.CString -> IO C.CString
+
+-------------------------------------------------------------------------------
 -- Effects
 
 foreign import ccall unsafe "sox.h sox_create_effects_chain"

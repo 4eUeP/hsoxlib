@@ -33,6 +33,10 @@ module Sound.HSoxLib.Types
   , I.fmtIOType
   , I.fmtTellOff
   , I.fmtDataStart
+  -- **
+  , I.getFmtSignalPtr
+  , I.getFmtEncodingPtr
+  , I.getFmtOOBPtr
 
   -- *
 
@@ -48,6 +52,7 @@ module Sound.HSoxLib.Types
   , I.freeSoxOOBComments0
   , I.freeSoxOOBInstr
   , I.freeSoxOOBInstr0
+  , I.getSoxOOBCommentsPtr
 
   , I.SoxInstrinfo (..)
 
