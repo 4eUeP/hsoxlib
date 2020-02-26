@@ -28,7 +28,7 @@ import qualified Data.Vector.Storable as SV
 
 -- | Read a value from the given memory location.
 --
--- If the location is $0$ (null pointer), then return 'Nothing'.
+-- If the location is @0@ (null pointer), then return 'Nothing'.
 peekMaybeNull :: Storable a => Ptr a -> IO (Maybe a)
 peekMaybeNull = M.maybePeek peek
 

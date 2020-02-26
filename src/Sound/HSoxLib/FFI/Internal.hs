@@ -1,21 +1,85 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
+-- | Low-level interaction with underlying C API.
+-- ( http://sox.sourceforge.net )
+--
+-- You don't want to use this, see "Sound.HSoxLib.FFI" instead. Or other more
+-- higher level functions can be found in "Sound.HSoxLib".
 module Sound.HSoxLib.FFI.Internal where
 
 import qualified Foreign.C                    as C
-import           Foreign.Ptr                  (Ptr, FunPtr)
+import           Foreign.Ptr                  (FunPtr, Ptr)
 
 import qualified Sound.HSoxLib.Types          as T
 import qualified Sound.HSoxLib.Types.Internal as T
 
 -------------------------------------------------------------------------------
--- File's metadata
+-- * Misc
+
+foreign import ccall unsafe "sox.h sox_version"
+  c_sox_version :: C.CString
+
+foreign import ccall unsafe "sox.h sox_version_info"
+  c_sox_version_info :: Ptr T.SoxVersionInfo
+
+foreign import ccall unsafe "sox.h sox_precision"
+  c_sox_precision :: T.SoxEncoding -> C.CUInt -> C.CUInt
+
+-------------------------------------------------------------------------------
+-- * Read & Write
+
+foreign import ccall unsafe "sox.h sox_format_init"
+  c_sox_format_init :: IO C.CInt
+
+foreign import ccall unsafe "sox.h sox_format_quit"
+  c_sox_format_quit :: IO ()
+
+foreign import ccall unsafe "sox.h sox_init"
+  c_sox_init :: IO C.CInt
+
+foreign import ccall unsafe "sox.h sox_quit"
+  c_sox_quit :: IO C.CInt
+
+foreign import ccall unsafe "sox.h sox_open_read"
+  c_sox_open_read :: T.CFilePath
+                  -> Ptr T.SoxSignalinfo
+                  -> Ptr T.SoxEncodinginfo
+                  -> T.CFileType
+                  -> IO (Ptr T.SoxFormat)
+
+foreign import ccall safe "sox.h sox_open_write"
+  c_sox_open_write :: T.CFilePath
+                   -> Ptr T.SoxSignalinfo
+                   -> Ptr T.SoxEncodinginfo
+                   -> T.CFileType
+                   -> Ptr T.SoxOOB
+                   -> FunPtr (T.CFilePath -> IO Bool)
+                   -> IO (Ptr T.SoxFormat)
+
+foreign import ccall unsafe "sox.h sox_read"
+  c_sox_read :: Ptr T.SoxFormat
+             -> Ptr T.SoxSample
+             -> C.CSize
+             -> IO C.CSize
+
+foreign import ccall unsafe "sox.h sox_write"
+  c_sox_write :: Ptr T.SoxFormat
+              -> Ptr T.SoxSample
+              -> C.CSize
+              -> IO C.CSize
+
+foreign import ccall unsafe "sox.h sox_close"
+  c_sox_close :: Ptr T.SoxFormat
+              -> IO C.CInt
+
+-------------------------------------------------------------------------------
+-- * File's metadata
 
 foreign import ccall unsafe "sox.h sox_find_comment"
   c_sox_find_comment :: Ptr T.SoxComments -> C.CString -> IO C.CString
 
 -------------------------------------------------------------------------------
--- Effects
+-- * Effects
 
 foreign import ccall unsafe "sox.h sox_create_effects_chain"
   c_sox_create_effects_chain :: Ptr T.SoxEncodinginfo
