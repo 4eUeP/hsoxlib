@@ -1,5 +1,12 @@
 module Sound.HSoxLib.Types
-  ( I.SoxVersionInfo
+  ( I.CFilePath
+  , I.CFileType
+  , I.SoxSample
+  , I.SoxComments
+
+  -- *
+  , I.SoxVersionInfo
+  -- **
   , I.versionFlags
   , I.versionCode
   , I.version
@@ -9,6 +16,43 @@ module Sound.HSoxLib.Types
   , I.compiler
   , I.arch
 
+  -- *
+  , I.SoxFormat
+  -- **
+  , I.fmtFilename
+  , I.fmtSignalinfo
+  , I.fmtEncodinginfo
+  , I.fmtFiletype
+  , I.fmtOOB
+  , I.fmtSeekable
+  , I.fmtMode
+  , I.fmtOlength
+  , I.fmtClips
+  , I.fmtSoxErrno
+  , I.fmtSoxErrStr
+  , I.fmtIOType
+  , I.fmtTellOff
+  , I.fmtDataStart
+
+  -- *
+
+  , I.SoxSignalinfo (..)
+  , I.defaultSoxSignalinfo
+  , I.freeSoxSignalinfoMult
+  , I.freeSoxSignalinfoMult0
+
+  , I.SoxEncodinginfo
+
+  , I.SoxOOB (..)
+  , I.freeSoxOOBComments
+  , I.freeSoxOOBComments0
+  , I.freeSoxOOBInstr
+  , I.freeSoxOOBInstr0
+
+  , I.SoxInstrinfo (..)
+
+  , I.SoxLoopinfo (..)
+
   , I.SoxVersionFlag
   , I.soxFlagNone
   , I.soxFlagPopen
@@ -16,7 +60,7 @@ module Sound.HSoxLib.Types
   , I.soxFlagThreads
   , I.soxFlagMemopen
 
-  , I.SoxError(..)
+  , I.SoxError (..)
   , I.soxSuccess
   , I.soxEof
   , I.soxEhdr
