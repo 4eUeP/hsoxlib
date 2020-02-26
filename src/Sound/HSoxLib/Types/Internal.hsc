@@ -1,5 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface   #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards            #-}
 {-# OPTIONS_GHC -Wno-identities         #-}
 
 -- | Do not use this module, see 'Sound.HSoxLib.Types' instead
@@ -9,6 +10,7 @@ module Sound.HSoxLib.Types.Internal where
 
 import           Data.Bits           ((.&.))
 import           Data.Int
+import           Data.Maybe          (fromMaybe)
 import           Data.Word
 import qualified Foreign.C.String    as C
 import qualified Foreign.C.Types     as C
@@ -27,6 +29,7 @@ type CFileType = C.CString
 type CFilePath = C.CString
 
 type SoxSample = SoxInt32
+type SoxComments = [String]
 
 type SoxInt32 = #{type sox_int32_t}
 type SoxInt64 = #{type sox_int64_t}
@@ -151,7 +154,7 @@ data SoxSignalinfo =
                 -- ^ samples * chans in file, @-1@ if unspecified.
                 , sigMult      :: Maybe Double
                 -- ^ effects headroom multiplier
-                } deriving (Show)
+                } deriving (Show, Eq)
 
 instance Storable SoxSignalinfo where
   sizeOf _ = #{size sox_signalinfo_t}
@@ -168,7 +171,24 @@ instance Storable SoxSignalinfo where
       maybeUnspec n
         | n == #{const SOX_UNSPEC} = Nothing
         | otherwise = Just n
-  poke = error "SoxSignalinfo.poke: NotImplemented."
+  poke ptr SoxSignalinfo{..} = rate' >> chan' >> prec' >> leng' >> mult'
+    where
+      rate' = #{poke_double sox_signalinfo_t, rate} ptr $ set sigRate
+      chan' = #{poke sox_signalinfo_t, channels } ptr $ set sigChannels
+      prec' = #{poke sox_signalinfo_t, precision} ptr $ set sigPrecision
+      leng' = #{poke sox_signalinfo_t, length} ptr $ set sigLength
+      mult' = let x = C.CDouble <$> sigMult
+               in #{poke sox_signalinfo_t, mult} ptr =<< (U.fromMaybeNew x)
+      set :: Num a => Maybe a -> a
+      set = fromMaybe (#{const SOX_UNSPEC})
+
+freeSoxSignalinfoMult :: Ptr SoxSignalinfo -> IO ()
+freeSoxSignalinfoMult ptr = M.free =<< #{peek sox_signalinfo_t, mult} ptr
+
+freeSoxSignalinfoMult0 :: Ptr SoxSignalinfo -> IO ()
+freeSoxSignalinfoMult0 ptr = freeSoxSignalinfoMult ptr >> setNull ptr
+  where
+    setNull p = #{poke sox_signalinfo_t, mult} p nullPtr
 
 defaultSoxSignalinfo :: SoxSignalinfo
 defaultSoxSignalinfo = SoxSignalinfo Nothing Nothing Nothing Nothing Nothing
@@ -238,15 +258,14 @@ instance Storable SoxEncodingsInfo where
 
 -- | Comments, instrument info, loop info (out-of-band data).
 data SoxOOB =
-  SoxOOB { oobComments :: [String]
+  SoxOOB { oobComments :: SoxComments
          -- ^ File's metadata in key=value format.
          , oobInstr    :: Maybe SoxInstrinfo
          -- ^ Instrument specification.
          , oobLoops    :: [SoxLoopinfo]
          -- ^ Looping specification.
-         -- FIXME: I don't known what this is, emm...
-         -- (In libsox, sox_oob_t.loops is a fixed length array)
-         } deriving (Show)
+         -- Caution: in libsox, sox_oob_t.loops is a fixed length array.
+         } deriving (Show, Eq)
 
 instance Storable SoxOOB where
   sizeOf _ = #{size sox_oob_t}
@@ -255,8 +274,63 @@ instance Storable SoxOOB where
     pure SoxOOB
       <*> (U.peekArrayCStrings =<< #{peek sox_oob_t, comments} ptr)
       <*> (U.peekMaybeNull =<< #{peek sox_oob_t, instr} ptr)
-      <*> (M.peekArray #{const SOX_MAX_NLOOPS} $ #{ptr sox_oob_t, loops} ptr)
-  poke = error "SoxOOB.poke: NotImplemented."
+      <*> let p = #{ptr sox_oob_t, loops} ptr
+              pSize = sizeOf p
+              loopSize = sizeOf (undefined :: SoxLoopinfo)
+              toArrayLen n =
+                let (d, m) = (n * loopSize) `divMod` pSize
+                    errmsg = "You should never see this error, details: "
+                          <> "n: " ++ show n
+                          <> ", loopSize: " ++ show loopSize
+                          <> ", pSize: " ++ show pSize
+                 in if m == 0 then d else error errmsg
+              toLoopsLen l = let (d, m) = (l * pSize) `divMod` loopSize
+                              -- there is no reason this "else" will happen,
+                              -- however, if it really happened, we choose
+                              -- 'soxMaxNloops'.
+                              in if m == 0 then d else soxMaxNloops
+              maxArrayLen = toArrayLen soxMaxNloops
+           in do arrayLen <- U.lengthArray0WithMax maxArrayLen nullPtr p
+                 M.peekArray (toLoopsLen arrayLen) p
+  poke ptr SoxOOB{..} = comm' >> inst' >> loop'
+    where
+      comm' = do
+        p' <- U.makeCStringArray0 nullPtr oobComments
+        #{poke sox_oob_t, comments} ptr p'
+      inst' =
+        case oobInstr of
+          Nothing -> #{poke sox_oob_t, instr} ptr nullPtr
+          Just v  -> do
+            p' <- M.malloc
+            poke p' v
+            #{poke sox_oob_t, instr} ptr p'
+      loop'
+        | length oobLoops > soxMaxNloops =
+            error $ "SoxOOB.poke: The max size of loops is "
+                 <> show soxMaxNloops ++ "."
+        | otherwise = do
+            p' <- M.callocArray soxMaxNloops
+            M.pokeArray p' oobLoops
+            M.copyArray (#{ptr sox_oob_t, loops} ptr) p' soxMaxNloops
+
+soxMaxNloops :: Int
+soxMaxNloops = #{const SOX_MAX_NLOOPS}
+
+freeSoxOOBComments :: Ptr SoxOOB -> IO ()
+freeSoxOOBComments ptr = M.free =<< #{peek sox_oob_t, comments} ptr
+
+freeSoxOOBComments0 :: Ptr SoxOOB -> IO ()
+freeSoxOOBComments0 ptr = freeSoxOOBComments ptr >> setNull ptr
+  where
+    setNull p = #{poke sox_oob_t, comments} p nullPtr
+
+freeSoxOOBInstr :: Ptr SoxOOB -> IO ()
+freeSoxOOBInstr ptr = M.free =<< #{peek sox_oob_t, instr} ptr
+
+freeSoxOOBInstr0 :: Ptr SoxOOB -> IO ()
+freeSoxOOBInstr0 ptr = freeSoxOOBInstr ptr >> setNull ptr
+  where
+    setNull p = #{poke sox_oob_t, instr} p nullPtr
 
 -- | Instrument information.
 data SoxInstrinfo =
@@ -271,19 +345,25 @@ data SoxInstrinfo =
                -- TODO: should this be 'SoxLoopFlag'?
                , nloops   :: Word
                -- ^ number of active loops (max SOX_MAX_NLOOPS)
-               } deriving (Show)
+               } deriving (Show, Eq)
 
 instance Storable SoxInstrinfo where
   sizeOf _ = #{size sox_instrinfo_t}
   alignment _ = #{alignment sox_instrinfo_t}
   peek ptr =
     pure SoxInstrinfo
-      <*> (#{peek sox_instrinfo_t, MIDInote} ptr)
-      <*> (#{peek sox_instrinfo_t, MIDIlow} ptr)
-      <*> (#{peek sox_instrinfo_t, MIDIhi} ptr)
-      <*> (#{peek sox_instrinfo_t, loopmode} ptr)
-      <*> (#{peek sox_instrinfo_t, nloops} ptr)
-  poke = error "SoxInstrinfo.poke: NotImplemented."
+      <*> #{peek sox_instrinfo_t, MIDInote} ptr
+      <*> #{peek sox_instrinfo_t, MIDIlow} ptr
+      <*> #{peek sox_instrinfo_t, MIDIhi} ptr
+      <*> #{peek sox_instrinfo_t, loopmode} ptr
+      <*> #{peek sox_instrinfo_t, nloops} ptr
+  poke ptr SoxInstrinfo{..} = note' >> mlow' >> mhig' >> mode' >> nlps'
+    where
+      note' = #{poke sox_instrinfo_t, MIDInote} ptr midiNote
+      mlow' = #{poke sox_instrinfo_t, MIDIlow} ptr midiLow
+      mhig' = #{poke sox_instrinfo_t, MIDIhi} ptr midiHi
+      mode' = #{poke sox_instrinfo_t, loopmode} ptr loopMode
+      nlps' = #{poke sox_instrinfo_t, nloops} ptr nloops
 
 -- | Looping parameters (out-of-band data).
 data SoxLoopinfo =
@@ -296,7 +376,7 @@ data SoxLoopinfo =
               , loopType   :: Word8
               -- ^ 0=no, 1=forward, 2=forward/back, ...
               -- TODO: should this be 'SoxLoopFlag'?
-              } deriving (Show)
+              } deriving (Show, Eq)
 
 instance Storable SoxLoopinfo where
   sizeOf _ = #{size sox_loopinfo_t}
@@ -307,7 +387,12 @@ instance Storable SoxLoopinfo where
       <*> (#{peek sox_loopinfo_t, length} ptr)
       <*> (#{peek sox_loopinfo_t, count} ptr)
       <*> (#{peek sox_loopinfo_t, type} ptr)
-  poke = error "SoxLoopinfo.poke: NotImplemented."
+  poke ptr SoxLoopinfo{..} = strt' >> leng' >> coun' >> type'
+    where
+      strt' = #{poke sox_loopinfo_t, start} ptr loopStart
+      leng' = #{poke sox_loopinfo_t, length} ptr loopLength
+      coun' = #{poke sox_loopinfo_t, count} ptr loopCount
+      type' = #{poke sox_loopinfo_t, type} ptr loopType
 
 -------------------------------------------------------------------------------
 

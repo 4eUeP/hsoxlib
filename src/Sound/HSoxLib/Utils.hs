@@ -2,25 +2,26 @@ module Sound.HSoxLib.Utils
   ( peekMaybeNull
   , peekCDoubleNull
 
+  , fromMaybeNew
+
   , peekCStringEmpty
   , peekCStringLenEmpty
   , pokeCStringWithTerm
   , pokeCString0
-
-  , fromMaybeNew
 
   , peekArrayCStrings
   , withCreateArray
   , makeCStringArray
   , makeCStringArray0
   , freeCStringArray
+  , lengthArray0WithMax
   ) where
 
 import qualified Foreign.C            as C
 import qualified Foreign.ForeignPtr   as P
 import qualified Foreign.Marshal      as M
 import           Foreign.Ptr          (Ptr, nullPtr)
-import           Foreign.Storable     (Storable, peek)
+import           Foreign.Storable     (Storable, peek, peekElemOff)
 
 import qualified Data.Vector.Storable as SV
 
@@ -60,13 +61,6 @@ peekMaybeNull :: Storable a => Ptr a -> IO (Maybe a)
 peekMaybeNull ptr = maybeNullPeek Nothing ptr (fmap Just . peek)
 
 -------------------------------------------------------------------------------
-
--- | Like 'M.new', but can given 'Nothing' (will get 'nullPtr').
-fromMaybeNew :: Storable a => Maybe a -> IO (Ptr a)
-fromMaybeNew Nothing  = return nullPtr
-fromMaybeNew (Just x) = M.new x
-
--------------------------------------------------------------------------------
 -- Array
 
 -- | Convert an array of C strings end with NULL pointer to haskell list.
@@ -98,11 +92,27 @@ makeCStringArray0 marker xs = M.newArray0 marker =<< mapM C.newCString xs
 
 freeCStringArray :: Int -> Ptr C.CString -> IO ()
 freeCStringArray l ptr = do
-  cs <- M.peekArray l ptr
-  mapM_ M.free cs
+  M.peekArray l ptr >>= mapM_ M.free
   M.free ptr
 
+-- | Like 'M.lengthArray0', but with a max length.
+lengthArray0WithMax :: (Storable a, Eq a) => Int -> a -> Ptr a -> IO Int
+lengthArray0WithMax maxLen marker ptr
+  | maxLen <= 0 = return 0
+  | otherwise = loop 0
+  where
+    loop i = do
+      val <- peekElemOff ptr i
+      if i >= maxLen
+         then return maxLen
+         else if val == marker then return i else loop (i + 1)
+
 -------------------------------------------------------------------------------
+
+-- | Like 'M.new', but can given 'Nothing' (will get 'nullPtr').
+fromMaybeNew :: Storable a => Maybe a -> IO (Ptr a)
+fromMaybeNew Nothing  = return nullPtr
+fromMaybeNew (Just x) = M.new x
 
 maybeNullPeek :: a -> Ptr b -> (Ptr b -> IO a) -> IO a
 maybeNullPeek defaultVal ptr peekfun | ptr == nullPtr = return defaultVal
