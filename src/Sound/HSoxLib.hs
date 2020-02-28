@@ -3,6 +3,10 @@ module Sound.HSoxLib
   , FFI.soxVersionInfo
 
   , FFI.withSox
+
+  -- * Information
+  , module Sound.HSoxLib.Information
   ) where
 
-import qualified Sound.HSoxLib.FFI as FFI
+import qualified Sound.HSoxLib.FFI         as FFI
+import           Sound.HSoxLib.Information
