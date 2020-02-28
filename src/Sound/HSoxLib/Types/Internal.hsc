@@ -160,7 +160,7 @@ data SoxSignalinfo =
                 , sigPrecision :: Maybe Word
                 -- ^ bits per sample
                 , sigLength    :: Maybe Word64
-                -- ^ samples * chans in file, @-1@ if unspecified.
+                -- ^ samples * channels in file, @-1@ if unspecified.
                 , sigMult      :: Maybe Double
                 -- ^ effects headroom multiplier
                 } deriving (Show, Eq)

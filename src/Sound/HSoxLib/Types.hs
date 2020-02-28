@@ -2,7 +2,6 @@ module Sound.HSoxLib.Types
   ( I.CFilePath
   , I.CFileType
   , I.SoxSample
-  , I.SoxComments
 
   -- *
   , I.SoxVersionInfo
@@ -45,7 +44,7 @@ module Sound.HSoxLib.Types
   , I.freeSoxSignalinfoMult
   , I.freeSoxSignalinfoMult0
 
-  , I.SoxEncodinginfo
+  , I.SoxEncodinginfo (..)
 
   , I.SoxOOB (..)
   , I.freeSoxOOBComments
@@ -53,6 +52,9 @@ module Sound.HSoxLib.Types
   , I.freeSoxOOBInstr
   , I.freeSoxOOBInstr0
   , I.getSoxOOBCommentsPtr
+
+  , I.SoxComments
+  , getSoxCommentsPtr
 
   , I.SoxInstrinfo (..)
 
@@ -108,4 +110,11 @@ module Sound.HSoxLib.Types
   , I.soxEncodingsLen
   ) where
 
+import           Foreign.Ptr          (Ptr)
+
 import qualified Sound.HSoxLib.Types.Internal as I
+
+
+-- | Get sox_comments ptr from sox_format.
+getSoxCommentsPtr :: Ptr I.SoxFormat -> IO (Ptr I.SoxComments)
+getSoxCommentsPtr fmtptr = I.getSoxOOBCommentsPtr $ I.getFmtOOBPtr fmtptr

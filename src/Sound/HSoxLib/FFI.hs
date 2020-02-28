@@ -111,6 +111,10 @@ withSoxOpenRead fp sig enc ft = bracket init' soxClose
   where
     init' = soxOpenRead fp sig enc ft >>= assertHandle "soxOpenRead"
 
+-- | Like 'withSoxOpenRead', but with all default options.
+simpleSoxOpenRead :: FilePath -> (Ptr T.SoxFormat -> IO a) -> IO a
+simpleSoxOpenRead fp = withSoxOpenRead fp nullPtr nullPtr Nothing
+
 -- | Reads samples from a decoding session into a sample buffer.
 -- Return a vector of samples with the number of samples decoded, or 0 for EOF.
 soxRead :: Ptr T.SoxFormat -> IO (SV.Vector T.SoxSample, C.CSize)
@@ -130,6 +134,18 @@ soxRead fmtPtr = do
 soxFindComment :: Ptr T.SoxComments -> String -> IO (Maybe String)
 soxFindComment ptr key =
   C.withCString key $ U.maybePeekCString <=< I.c_sox_find_comment ptr
+
+-- | Like 'soxFindComment', with an extra function to parse the result.
+soxReadComments :: Ptr T.SoxComments
+                -> (String -> Maybe a)
+                -- ^ Functin to parse the value that returned from
+                -- 'soxFindComment'.
+                -> String
+                -- ^ Key passed to 'I.soxFindComment'.
+                -> IO (Maybe a)
+soxReadComments ptr rd key = do
+  mval <- soxFindComment ptr key
+  return $ mval >>= rd
 
 -------------------------------------------------------------------------------
 -- * Write
