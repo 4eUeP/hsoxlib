@@ -5,7 +5,7 @@ import           Control.Monad              ((<=<))
 import qualified Foreign.C.String           as C
 import qualified Foreign.C.Types            as C
 import qualified Foreign.ForeignPtr         as P
-import           Foreign.Ptr                (FunPtr, Ptr, nullPtr)
+import           Foreign.Ptr                (FunPtr, Ptr, nullFunPtr, nullPtr)
 import           Foreign.Storable           (peek)
 
 import qualified Data.Vector.Storable       as SV
@@ -171,6 +171,29 @@ soxOpenWrite :: FilePath
              -- ^ The new session handle, or null on failure.
 soxOpenWrite fp sig enc cft oob f =
   C.withCString fp $ \cfp -> I.c_sox_open_write cfp sig enc cft oob f
+
+-- | Like 'soxOpenWrite', with auto close the returned handle.
+--
+-- If the handle is null pointer, raise an exception.
+withSoxOpenWrite :: FilePath
+                 -> Ptr T.SoxSignalinfo
+                 -> Ptr T.SoxEncodinginfo
+                 -> T.CFileType
+                 -> Ptr T.SoxOOB
+                 -> FunPtr (T.CFilePath -> IO Bool)
+                 -> (Ptr T.SoxFormat -> IO a)
+                 -> IO a
+withSoxOpenWrite fp sig enc ft oob func = bracket init' soxClose
+  where
+    init' = soxOpenWrite fp sig enc ft oob func >>= assertHandle "soxOpenWrite"
+
+-- | OpenWrite with default options.
+simpleSoxOpenWrite :: FilePath
+                   -> Ptr T.SoxSignalinfo
+                   -> (Ptr T.SoxFormat -> IO a)
+                   -> IO a
+simpleSoxOpenWrite fp p =
+  withSoxOpenWrite fp p nullPtr nullPtr nullPtr nullFunPtr
 
 -- | Writes samples to an encoding session from a sample buffer.
 soxWrite :: Ptr T.SoxFormat
