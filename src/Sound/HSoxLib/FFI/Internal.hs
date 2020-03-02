@@ -103,7 +103,7 @@ foreign import ccall unsafe "sox.h sox_flow_effects"
                      -> IO C.CInt
 
 foreign import ccall unsafe "sox.h sox_find_effect"
-  c_sox_find_effect :: C.CString -> Ptr T.SoxEffectHandler
+  c_sox_find_effect :: C.CString -> IO (Ptr T.SoxEffectHandler)
 
 foreign import ccall unsafe "sox.h sox_create_effect"
   c_sox_create_effect :: Ptr T.SoxEffectHandler -> IO (Ptr T.SoxEffect)

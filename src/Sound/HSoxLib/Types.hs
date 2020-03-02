@@ -108,6 +108,13 @@ module Sound.HSoxLib.Types
   , I.encodingLPC10
   , I.encodingOpus
   , I.soxEncodingsLen
+
+  -- *
+
+  , I.SoxEffectsChain
+  , I.SoxEffect
+  , I.SoxFlowEffectsCallback
+  , I.SoxEffectHandler
   ) where
 
 import           Foreign.Ptr          (Ptr)

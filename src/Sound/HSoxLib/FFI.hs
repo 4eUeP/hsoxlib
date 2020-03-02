@@ -73,7 +73,7 @@ withSox = bracket_ init' quit'
 soxClose :: Ptr T.SoxFormat
          -- ^ Format pointer.
          -> IO T.SoxError
-         -- ^ returns SOX_SUCCESS if successful.
+         -- ^ returns 'T.soxSuccess' if successful.
 soxClose = fmap T.SoxError . I.c_sox_close
 
 -------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ withSoxOpenRead :: FilePath
                 -> IO a
 withSoxOpenRead fp sig enc ft = bracket init' soxClose
   where
-    init' = soxOpenRead fp sig enc ft >>= assertHandle "soxOpenRead"
+    init' = soxOpenRead fp sig enc ft >>= assertNotNull "soxOpenRead"
 
 -- | Like 'withSoxOpenRead', but with all default options.
 simpleSoxOpenRead :: FilePath -> (Ptr T.SoxFormat -> IO a) -> IO a
@@ -185,7 +185,7 @@ withSoxOpenWrite :: FilePath
                  -> IO a
 withSoxOpenWrite fp sig enc ft oob func = bracket init' soxClose
   where
-    init' = soxOpenWrite fp sig enc ft oob func >>= assertHandle "soxOpenWrite"
+    init' = soxOpenWrite fp sig enc ft oob func >>= assertNotNull "soxOpenWrite"
 
 -- | OpenWrite with default options.
 simpleSoxOpenWrite :: FilePath
@@ -206,6 +206,80 @@ soxWrite fmtPtr vec =
   let (fptr, len) = SV.unsafeToForeignPtr0 vec
    in P.withForeignPtr fptr $ \ptr ->
      I.c_sox_write fmtPtr ptr (fromIntegral len)
+
+-------------------------------------------------------------------------------
+-- * Effects
+
+-- | Initializes an effects chain.
+--
+-- Returned handle must be closed with 'soxDeleteEffChain'.
+soxCreateEffChain :: Ptr T.SoxEncodinginfo
+                  -- ^ Input encoding.
+                  -> Ptr T.SoxEncodinginfo
+                  -- ^ Output encoding.
+                  -> IO (Ptr T.SoxEffectsChain)
+                  -- ^ Returned Handle, or null on failure.
+soxCreateEffChain = I.c_sox_create_effects_chain
+
+-- | Closes an effects chain.
+soxDeleteEffChain :: Ptr T.SoxEffectsChain -> IO ()
+soxDeleteEffChain = I.c_sox_delete_effects_chain
+
+-- | Like 'soxCreateEffChain', but you don't need to manual delete the effect
+-- chain. If the returned effect chain is null, then raise an exception.
+withSoxCreateEffChain :: Ptr T.SoxEncodinginfo
+                      -> Ptr T.SoxEncodinginfo
+                      -> (Ptr T.SoxEffectsChain -> IO a)
+                      -> IO a
+withSoxCreateEffChain i o = bracket init' soxDeleteEffChain
+  where
+    init' = soxCreateEffChain i o >>= assertNotNull "soxCreateEffChain"
+
+-- | Find the effect handler with the given name.
+-- Return Effect pointer, or null if not found.
+soxFindEffect :: String -> IO (Ptr T.SoxEffectHandler)
+soxFindEffect name = C.withCString name I.c_sox_find_effect
+
+-- | Create an effect using the given handler.
+-- Return The new effect, or null if not found.
+soxCreateEffect :: Ptr T.SoxEffectHandler -> IO (Ptr T.SoxEffect)
+soxCreateEffect = I.c_sox_create_effect
+
+-- Add an effect to the effects chain,
+-- returns 'T.soxSuccess' if successful.
+soxAddEffect :: Ptr T.SoxEffectsChain
+             -- ^ Effects chain to which effect should be added.
+             -> Ptr T.SoxEffect
+             -- ^ Effect to be added.
+             -> Ptr T.SoxSignalinfo
+             -- ^ Input format.
+             -> Ptr T.SoxSignalinfo
+             -- ^ Output format.
+             -> IO T.SoxError
+soxAddEffect w x y z = fmap T.SoxError (I.c_sox_add_effect w x y z)
+
+-- | Applies the command-line options to the effect.
+soxEffectOptions :: Ptr T.SoxEffect
+                 -- ^ Effect pointer on which to set options.
+                 -> C.CInt
+                 -- ^ Number of arguments in argv.
+                 -> Ptr C.CString
+                 -- ^ Array of command-line options.
+                 -> IO C.CInt
+                 -- ^ FIXME: the comment in sox.h say this is "the number of
+                 -- arguments consumed", but the real is that this is a
+                 -- sox_error_t, and will return SOX_SUCCESS if successful.
+soxEffectOptions = I.c_sox_effect_options
+
+-- | Runs the effects chain, returns 'T.soxSuccess' if successful.
+soxFlowEffects :: Ptr T.SoxEffectsChain
+               -- ^ Effects chain to run.
+               -> FunPtr (T.SoxFlowEffectsCallback a)
+               -- ^ Callback for monitoring flow progress.
+               -> Ptr a
+               -- ^ Data to pass into callback.
+               -> IO T.SoxError
+soxFlowEffects x y z = fmap T.SoxError (I.c_sox_flow_effects x y z)
 
 -------------------------------------------------------------------------------
 -- * Misc
@@ -240,8 +314,7 @@ assertSucc :: String
 assertSucc name ret | ret == T.soxSuccess = return ret
                     | otherwise = error $ name ++ " failed: " ++ show ret
 
--- | Check if the the handle returned by 'soxOpenRead' and 'soxOpenWrite' is
--- NULL. Or an exception will be raised.
-assertHandle :: String -> Ptr a -> IO (Ptr a)
-assertHandle name ptr | ptr == nullPtr = error $ name ++ " returned NULL."
-                      | otherwise = return ptr
+-- | Check if the pointer is NULL, or an exception will be raised.
+assertNotNull  :: String -> Ptr a -> IO (Ptr a)
+assertNotNull name ptr | ptr == nullPtr = error $ name ++ " returned NULL."
+                       | otherwise = return ptr
