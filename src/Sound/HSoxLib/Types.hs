@@ -3,6 +3,16 @@ module Sound.HSoxLib.Types
   , I.CFileType
   , I.SoxSample
 
+  , I.SoxInt32
+  , I.SoxInt64
+  , I.SoxUInt32
+  , I.SoxUInt64
+
+  -- *
+  , I.SoxBool
+  , I.soxFalse
+  , I.soxTrue
+
   -- *
   , I.SoxVersionInfo
   -- **

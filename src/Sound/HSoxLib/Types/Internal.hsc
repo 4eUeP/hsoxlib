@@ -651,7 +651,9 @@ data SoxEffectHandler
 
 -------------------------------------------------------------------------------
 
-type SoxFlowEffectsCallback a = SoxBool -> Ptr a -> C.CInt
+type SoxFlowEffectsCallback a = SoxBool -> Ptr a -> IO SoxError
+
+type SoxEffectHandlerStart = SoxEffectHandler -> IO C.CInt
 
 -------------------------------------------------------------------------------
 -- Macros

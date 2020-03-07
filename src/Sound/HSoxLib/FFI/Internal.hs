@@ -102,6 +102,16 @@ foreign import ccall unsafe "sox.h sox_flow_effects"
                      -> Ptr a
                      -> IO C.CInt
 
+foreign import ccall "sox.h sox_flow_effects"
+  c_safe_sox_flow_effects :: Ptr T.SoxEffectsChain
+                          -> FunPtr (T.SoxFlowEffectsCallback a)
+                          -> Ptr a
+                          -> IO C.CInt
+
+foreign import ccall unsafe "wrapper"
+  createFlowEffectsCallbackPtr :: T.SoxFlowEffectsCallback a
+                               -> IO (FunPtr (T.SoxFlowEffectsCallback a))
+
 foreign import ccall unsafe "sox.h sox_find_effect"
   c_sox_find_effect :: C.CString -> IO (Ptr T.SoxEffectHandler)
 
@@ -113,3 +123,17 @@ foreign import ccall unsafe "sox.h sox_effect_options"
                        -> C.CInt
                        -> Ptr C.CString
                        -> IO C.CInt
+
+-------------------------------------------------------------------------------
+-- * Local c functions under csrc directory
+
+-- ** Custom effects
+
+foreign import ccall unsafe "input_effect_fn0"
+  c_input_effect_fn0 :: IO (Ptr T.SoxEffectHandler)
+
+foreign import ccall unsafe "get_read_wide_samples"
+  c_get_read_wide_samples :: IO T.SoxUInt64
+
+foreign import ccall unsafe "get_input_read_time"
+  c_get_input_read_time :: IO Double

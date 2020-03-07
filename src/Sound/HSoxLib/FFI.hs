@@ -238,7 +238,8 @@ withSoxCreateEffChain i o = bracket init' soxDeleteEffChain
 -- | Find the effect handler with the given name.
 -- Return Effect pointer, or null if not found.
 soxFindEffect :: String -> IO (Ptr T.SoxEffectHandler)
-soxFindEffect name = C.withCString name I.c_sox_find_effect
+soxFindEffect "input0" = I.c_input_effect_fn0
+soxFindEffect name     = C.withCString name I.c_sox_find_effect
 
 -- | Create an effect using the given handler.
 -- Return The new effect, or null if not found.
@@ -274,12 +275,31 @@ soxEffectOptions = I.c_sox_effect_options
 -- | Runs the effects chain, returns 'T.soxSuccess' if successful.
 soxFlowEffects :: Ptr T.SoxEffectsChain
                -- ^ Effects chain to run.
+               -> IO T.SoxError
+soxFlowEffects c = fmap T.SoxError (I.c_sox_flow_effects c nullFunPtr nullPtr)
+
+-- | Runs the effects chain with a callback function,
+-- returns 'T.soxSuccess' if successful.
+soxFlowEffects0 :: Ptr T.SoxEffectsChain
+               -- ^ Effects chain to run.
                -> FunPtr (T.SoxFlowEffectsCallback a)
                -- ^ Callback for monitoring flow progress.
                -> Ptr a
                -- ^ Data to pass into callback.
                -> IO T.SoxError
-soxFlowEffects x y z = fmap T.SoxError (I.c_sox_flow_effects x y z)
+soxFlowEffects0 x y z = fmap T.SoxError (I.c_safe_sox_flow_effects x y z)
+
+createFlowEffectsCallbackPtr :: T.SoxFlowEffectsCallback a
+                             -> IO (FunPtr (T.SoxFlowEffectsCallback a))
+createFlowEffectsCallbackPtr = I.createFlowEffectsCallbackPtr
+
+-- | Should be called with "input0" effect. Or you will always get 0.
+getReadWideSamples :: IO T.SoxUInt64
+getReadWideSamples = I.c_get_read_wide_samples
+
+-- | Should be called with "input0" effect. Or you will always get 0.
+getInputReadTime :: IO Double
+getInputReadTime = I.c_get_input_read_time
 
 -------------------------------------------------------------------------------
 -- * Misc
