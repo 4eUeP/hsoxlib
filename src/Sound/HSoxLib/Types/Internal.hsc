@@ -187,7 +187,7 @@ instance Storable SoxSignalinfo where
       prec' = #{poke sox_signalinfo_t, precision} ptr $ set sigPrecision
       leng' = #{poke sox_signalinfo_t, length} ptr $ set sigLength
       mult' = let x = C.CDouble <$> sigMult
-               in #{poke sox_signalinfo_t, mult} ptr =<< (U.fromMaybeNew x)
+               in #{poke sox_signalinfo_t, mult} ptr =<< (M.maybeNew M.new x)
       set :: Num a => Maybe a -> a
       set = fromMaybe (#{const SOX_UNSPEC})
 

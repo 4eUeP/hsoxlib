@@ -2,8 +2,6 @@ module Sound.HSoxLib.Utils
   ( peekMaybeNull
   , peekCDoubleNull
 
-  , fromMaybeNew
-
   , maybePeekCString
   , peekCStringEmpty
   , peekCStringLenEmpty
@@ -118,11 +116,6 @@ lengthArray0WithMax maxLen marker ptr
          else if val == marker then return i else loop (i + 1)
 
 -------------------------------------------------------------------------------
-
--- | Like 'M.new', but can given 'Nothing' (will get 'nullPtr').
-fromMaybeNew :: Storable a => Maybe a -> IO (Ptr a)
-fromMaybeNew Nothing  = return nullPtr
-fromMaybeNew (Just x) = M.new x
 
 maybeNullPeek :: a -> Ptr b -> (Ptr b -> IO a) -> IO a
 maybeNullPeek defaultVal ptr peekfun | ptr == nullPtr = return defaultVal
