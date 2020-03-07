@@ -16,6 +16,9 @@ module Sound.HSoxLib.Utils
   , makeCStringArray0
   , freeCStringArray
   , lengthArray0WithMax
+
+  , calcTime
+  , strTime
   ) where
 
 import qualified Foreign.C            as C
@@ -23,6 +26,7 @@ import qualified Foreign.ForeignPtr   as P
 import qualified Foreign.Marshal      as M
 import           Foreign.Ptr          (Ptr, nullPtr)
 import           Foreign.Storable     (Storable, peek, peekElemOff)
+import           Text.Printf          (printf)
 
 import qualified Data.Vector.Storable as SV
 
@@ -123,3 +127,40 @@ fromMaybeNew (Just x) = M.new x
 maybeNullPeek :: a -> Ptr b -> (Ptr b -> IO a) -> IO a
 maybeNullPeek defaultVal ptr peekfun | ptr == nullPtr = return defaultVal
                                      | otherwise = peekfun ptr
+
+-------------------------------------------------------------------------------
+
+-- | Transform time in seconds into tuple of
+-- "(hours, minutes, seconds, milliseconds)".
+--
+-- >>> calcTime 360.1
+-- (0,6,0,100)
+--
+-- >>> let totalSeconds = 3601.1234
+-- >>> let (h, m, s, ms) = calcTime totalSeconds
+-- >>> (h * 3600 + m * 60 + s) * 1000 + ms == (floor $ 3601.1234 * 1000)
+-- True
+calcTime :: (RealFloat a, Integral b) => a -> (b, b, b, b)
+calcTime totalSeconds
+  | totalSeconds <= 0 = (0, 0, 0, 0)
+  | otherwise = let ts = floor totalSeconds
+                    (hours, m) = ts `divMod` 3600
+                    (mins, seconds) = m `divMod` 60
+                    mseconds = floor (totalSeconds * 1000) - ts * 1000
+                 in (hours, mins, seconds, mseconds)
+
+-- | Show time(seconds) in "hour:minute:second:milliseconds" format.
+--
+-- Note: only two of characters will be printed.
+--
+-- >>> strTime 3723.004
+-- "01:02:03.00"
+-- >>> strTime 3723.04
+-- "01:02:03.04"
+strTime :: RealFloat a => a -> String
+strTime totalSeconds =
+  let h, m, s, ms :: Integer
+      (h, m, s, ms) = calcTime totalSeconds
+      s' :: Double
+      s' = fromIntegral s + fromIntegral ms / 1000
+   in printf "%02i:%02i:%05.2f" h m s'
