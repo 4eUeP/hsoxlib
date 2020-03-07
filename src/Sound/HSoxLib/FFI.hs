@@ -2,9 +2,9 @@ module Sound.HSoxLib.FFI where
 
 import           Control.Exception          (bracket, bracket_)
 import           Control.Monad              ((<=<))
-import qualified Foreign.C.String           as C
-import qualified Foreign.C.Types            as C
+import qualified Foreign.C                  as C
 import qualified Foreign.ForeignPtr         as P
+import qualified Foreign.Marshal            as M
 import           Foreign.Ptr                (FunPtr, Ptr, nullFunPtr, nullPtr)
 import           Foreign.Storable           (peek)
 
@@ -93,10 +93,11 @@ soxOpenRead :: FilePath
             -- ^ Previously-determined file type, or 'Nothing' to auto-detect.
             -> IO (Ptr T.SoxFormat)
             -- ^ The handle for the new session, or NULL on failure.
-soxOpenRead fp sig enc Nothing =
-  C.withCString fp $ \cfp -> I.c_sox_open_read cfp sig enc nullPtr
-soxOpenRead fp sig enc (Just ft) =
-  C.withCString fp $ \cfp -> C.withCString ft $ I.c_sox_open_read cfp sig enc
+soxOpenRead fp sig enc ft =
+  -- Note: here we can use 'C.withCString' to auto free the memory, because
+  -- in libsox, sox_open_read will make a copy of these strings.
+  C.withCString fp $ \cfp ->
+    M.maybeWith C.withCString ft $ I.c_sox_open_read cfp sig enc
 
 -- | Like 'soxOpenRead', with auto close the returned handle.
 --
@@ -159,9 +160,9 @@ soxOpenWrite :: FilePath
              -> Ptr T.SoxEncodinginfo
              -- ^ Information about desired sample encoding,
              -- or NULL to use defaults.
-             -> T.CFileType
+             -> Maybe String
              -- ^ Previously-determined file type,
-             -- or NULL to auto-detect.
+             -- or 'Nothing' to auto-detect.
              -> Ptr T.SoxOOB
              -- ^ Out-of-band data to add to file, or NULL if none.
              -> FunPtr (T.CFilePath -> IO Bool)
@@ -169,8 +170,12 @@ soxOpenWrite :: FilePath
              -- overwrite is ok. Can be NULL.
              -> IO (Ptr T.SoxFormat)
              -- ^ The new session handle, or null on failure.
-soxOpenWrite fp sig enc cft oob f =
-  C.withCString fp $ \cfp -> I.c_sox_open_write cfp sig enc cft oob f
+soxOpenWrite fp sig enc ft oob f =
+  -- Note: here we can use 'C.withCString' to auto free the memory, because
+  -- in libsox, sox_open_write will make a copy of these strings.
+  C.withCString fp $ \cfp ->
+    M.maybeWith C.withCString ft $ \cft ->
+      I.c_sox_open_write cfp sig enc cft oob f
 
 -- | Like 'soxOpenWrite', with auto close the returned handle.
 --
@@ -178,7 +183,7 @@ soxOpenWrite fp sig enc cft oob f =
 withSoxOpenWrite :: FilePath
                  -> Ptr T.SoxSignalinfo
                  -> Ptr T.SoxEncodinginfo
-                 -> T.CFileType
+                 -> Maybe String
                  -> Ptr T.SoxOOB
                  -> FunPtr (T.CFilePath -> IO Bool)
                  -> (Ptr T.SoxFormat -> IO a)
@@ -193,7 +198,7 @@ simpleSoxOpenWrite :: FilePath
                    -> (Ptr T.SoxFormat -> IO a)
                    -> IO a
 simpleSoxOpenWrite fp p =
-  withSoxOpenWrite fp p nullPtr nullPtr nullPtr nullFunPtr
+  withSoxOpenWrite fp p nullPtr Nothing nullPtr nullFunPtr
 
 -- | Writes samples to an encoding session from a sample buffer.
 soxWrite :: Ptr T.SoxFormat
