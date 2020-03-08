@@ -1,7 +1,7 @@
 name: hsoxlib
 version: 0.0.1.0
 github: "4eUeP/hsoxlib"
-license: BSD3
+license: GPL
 license-file: LICENSE
 author: "mu <laxcatmu@gmail.com>"
 maintainer: "mu <laxcatmu@gmail.com>"
