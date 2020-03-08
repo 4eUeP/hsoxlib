@@ -343,3 +343,9 @@ assertSucc name ret | ret == T.soxSuccess = return ret
 assertNotNull  :: String -> Ptr a -> IO (Ptr a)
 assertNotNull name ptr | ptr == nullPtr = error $ name ++ " returned NULL."
                        | otherwise = return ptr
+
+tryDevice :: String -> IO (Maybe String)
+tryDevice ft = C.withCString ft $ U.maybePeekCString <=< I.c_try_device
+
+deviceName :: String -> IO (Maybe String)
+deviceName name = C.withCString name $ U.maybePeekCString <=< I.c_device_name

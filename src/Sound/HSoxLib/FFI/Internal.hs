@@ -137,3 +137,11 @@ foreign import ccall unsafe "get_read_wide_samples"
 
 foreign import ccall unsafe "get_input_read_time"
   c_get_input_read_time :: IO Double
+
+-- ** Audio devices
+
+foreign import ccall unsafe "try_device"
+  c_try_device :: C.CString -> IO C.CString
+
+foreign import ccall unsafe "device_name"
+  c_device_name :: C.CString -> IO C.CString
