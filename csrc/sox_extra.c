@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sox.h>
+#include "utils.h"
 
 // -------------------------------------
 
@@ -68,4 +70,50 @@ double
 get_input_read_time(void)
 {
     return input_read_time;
+}
+
+// -------------------------------------
+
+char const *
+device_name(char const * const type)
+{
+    char * name = NULL, * from_env = getenv("AUDIODEV");
+
+    if (!type)
+        return NULL;
+
+    if (0
+        || !strcmp(type, "sunau")
+        || !strcmp(type, "oss" )
+        || !strcmp(type, "ossdsp")
+        || !strcmp(type, "alsa")
+        || !strcmp(type, "ao")
+        || !strcmp(type, "sndio")
+        || !strcmp(type, "coreaudio")
+        || !strcmp(type, "pulseaudio")
+        || !strcmp(type, "waveaudio")
+        )
+        name = "default";
+
+    return name? from_env? from_env : name : NULL;
+}
+
+char const *
+try_device(char const * name)
+{
+    sox_format_handler_t const * handler = sox_find_format(name, sox_false);
+    if (handler) {
+        sox_format_t format, * ft = &format;
+        lsx_debug("Looking for a default device: trying format `%s'", name);
+        memset(ft, 0, sizeof(*ft));
+        ft->filename = (char *)device_name(name);
+        ft->priv = lsx_calloc(1, handler->priv_size);
+        if (handler->startwrite(ft) == SOX_SUCCESS) {
+            handler->stopwrite(ft);
+            free(ft->priv);
+            return name;
+        }
+        free(ft->priv);
+    }
+    return NULL;
 }
