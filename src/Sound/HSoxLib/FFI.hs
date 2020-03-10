@@ -230,16 +230,6 @@ soxCreateEffChain = I.c_sox_create_effects_chain
 soxDeleteEffChain :: Ptr T.SoxEffectsChain -> IO ()
 soxDeleteEffChain = I.c_sox_delete_effects_chain
 
--- | Like 'soxCreateEffChain', but you don't need to manual delete the effect
--- chain. If the returned effect chain is null, then raise an exception.
-withSoxCreateEffChain :: Ptr T.SoxEncodinginfo
-                      -> Ptr T.SoxEncodinginfo
-                      -> (Ptr T.SoxEffectsChain -> IO a)
-                      -> IO a
-withSoxCreateEffChain i o = bracket init' soxDeleteEffChain
-  where
-    init' = soxCreateEffChain i o >>= assertNotNull "soxCreateEffChain"
-
 -- | Find the effect handler with the given name.
 -- Return Effect pointer, or null if not found.
 soxFindEffect :: String -> IO (Ptr T.SoxEffectHandler)
@@ -297,7 +287,7 @@ soxFlowEffects0 x y z = fmap T.SoxError (I.c_safe_sox_flow_effects x y z)
 
 createFlowEffectsCallbackPtr :: T.SoxFlowEffectsCallback a
                              -> IO (FunPtr (T.SoxFlowEffectsCallback a))
-createFlowEffectsCallbackPtr = I.createFlowEffectsCallbackPtr
+createFlowEffectsCallbackPtr = I.create_flow_effects_callback
 
 -- | Should be called with "input0" effect. Or you will always get 0.
 getReadWideSamples :: IO T.SoxUInt64
@@ -307,9 +297,11 @@ getReadWideSamples = I.c_get_read_wide_samples
 getInputReadTime :: IO Double
 getInputReadTime = I.c_get_input_read_time
 
+-- | Should be called with "output0" effect. Or you will always get 0.
 getVuMeterFst :: IO String
 getVuMeterFst = C.peekCString =<< I.c_get_vu_meter_fst
 
+-- | Should be called with "output0" effect. Or you will always get 0.
 getVuMeterSnd :: IO String
 getVuMeterSnd = C.peekCString =<< I.c_get_vu_meter_snd
 

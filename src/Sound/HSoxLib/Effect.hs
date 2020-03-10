@@ -1,6 +1,26 @@
 module Sound.HSoxLib.Effect
-  ( autoEffect
+  ( FFI.soxCreateEffChain
+  , FFI.soxDeleteEffChain
+  , FFI.soxFindEffect
+  , FFI.soxCreateEffect
+  , FFI.soxAddEffect
+  , FFI.soxEffectOptions
+  , FFI.soxFlowEffects
+  , FFI.soxFlowEffects0
+
+  -- * Composition
+
+  , withSoxCreateEffChain
+  , autoEffect
   , autoEffect'
+
+  -- * Callbacks & Helpers
+
+  , FFI.createFlowEffectsCallbackPtr
+  , FFI.getReadWideSamples
+  , FFI.getInputReadTime
+  , FFI.getVuMeterFst
+  , FFI.getVuMeterSnd
   ) where
 
 import           Control.Exception   (bracket)
@@ -11,6 +31,15 @@ import           Foreign.Ptr         (Ptr)
 import qualified Sound.HSoxLib.FFI   as FFI
 import qualified Sound.HSoxLib.Types as T
 
+-- | Like 'FFI.soxCreateEffChain', but you don't need to manual delete the
+-- effect chain. If the returned effect chain is null, then raise an exception.
+withSoxCreateEffChain :: Ptr T.SoxEncodinginfo
+                      -> Ptr T.SoxEncodinginfo
+                      -> (Ptr T.SoxEffectsChain -> IO a)
+                      -> IO a
+withSoxCreateEffChain i o = bracket init' FFI.soxDeleteEffChain
+  where
+    init' = FFI.soxCreateEffChain i o >>= FFI.assertNotNull "soxCreateEffChain"
 
 -- | Apply effect to effect chain.
 autoEffect :: Ptr T.SoxEffectsChain

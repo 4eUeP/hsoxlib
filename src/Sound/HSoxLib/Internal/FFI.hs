@@ -109,7 +109,7 @@ foreign import ccall "sox.h sox_flow_effects"
                           -> IO C.CInt
 
 foreign import ccall unsafe "wrapper"
-  createFlowEffectsCallbackPtr :: T.SoxFlowEffectsCallback a
+  create_flow_effects_callback :: T.SoxFlowEffectsCallback a
                                -> IO (FunPtr (T.SoxFlowEffectsCallback a))
 
 foreign import ccall unsafe "sox.h sox_find_effect"
