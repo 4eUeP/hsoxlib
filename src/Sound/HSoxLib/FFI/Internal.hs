@@ -138,6 +138,15 @@ foreign import ccall unsafe "get_read_wide_samples"
 foreign import ccall unsafe "get_input_read_time"
   c_get_input_read_time :: IO Double
 
+foreign import ccall unsafe "output_effect_fn0"
+  c_output_effect_fn0 :: IO (Ptr T.SoxEffectHandler)
+
+foreign import ccall unsafe "get_vu_meter_fst"
+  c_get_vu_meter_fst :: IO C.CString
+
+foreign import ccall unsafe "get_vu_meter_snd"
+  c_get_vu_meter_snd :: IO C.CString
+
 -- ** Audio devices
 
 foreign import ccall unsafe "try_device"

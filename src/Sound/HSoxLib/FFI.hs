@@ -243,8 +243,9 @@ withSoxCreateEffChain i o = bracket init' soxDeleteEffChain
 -- | Find the effect handler with the given name.
 -- Return Effect pointer, or null if not found.
 soxFindEffect :: String -> IO (Ptr T.SoxEffectHandler)
-soxFindEffect "input0" = I.c_input_effect_fn0
-soxFindEffect name     = C.withCString name I.c_sox_find_effect
+soxFindEffect "input0"  = I.c_input_effect_fn0
+soxFindEffect "output0" = I.c_output_effect_fn0
+soxFindEffect name      = C.withCString name I.c_sox_find_effect
 
 -- | Create an effect using the given handler.
 -- Return The new effect, or null if not found.
@@ -305,6 +306,12 @@ getReadWideSamples = I.c_get_read_wide_samples
 -- | Should be called with "input0" effect. Or you will always get 0.
 getInputReadTime :: IO Double
 getInputReadTime = I.c_get_input_read_time
+
+getVuMeterFst :: IO String
+getVuMeterFst = C.peekCString =<< I.c_get_vu_meter_fst
+
+getVuMeterSnd :: IO String
+getVuMeterSnd = C.peekCString =<< I.c_get_vu_meter_snd
 
 -------------------------------------------------------------------------------
 -- * Misc
