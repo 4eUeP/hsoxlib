@@ -125,6 +125,12 @@ foreign import ccall unsafe "sox.h sox_effect_options"
                        -> IO C.CInt
 
 -------------------------------------------------------------------------------
+-- * LibSoX Internal API
+
+foreign import ccall unsafe "sox.h lsx_filelength"
+  c_lsx_filelength :: Ptr T.SoxFormat -> IO T.SoxUInt64
+
+-------------------------------------------------------------------------------
 -- * Local c functions under csrc directory
 
 -- ** Custom effects
