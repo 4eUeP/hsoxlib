@@ -39,7 +39,7 @@ library:
     - csrc/sox_extra.c
     - csrc/utils.c
   other-modules:
-    - Sound.HSoxLib.Types.Internal
+    - Sound.HSoxLib.Internal.Types
 
 tests:
   hsoxlib-test:

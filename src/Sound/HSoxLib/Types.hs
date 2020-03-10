@@ -129,7 +129,7 @@ module Sound.HSoxLib.Types
 
 import           Foreign.Ptr          (Ptr)
 
-import qualified Sound.HSoxLib.Types.Internal as I
+import qualified Sound.HSoxLib.Internal.Types as I
 
 
 -- | Get sox_comments ptr from sox_format.

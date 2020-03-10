@@ -10,7 +10,7 @@ import           Foreign.Storable           (peek)
 
 import qualified Data.Vector.Storable       as SV
 
-import qualified Sound.HSoxLib.FFI.Internal as I
+import qualified Sound.HSoxLib.Internal.FFI as I
 import qualified Sound.HSoxLib.Types        as T
 import qualified Sound.HSoxLib.Utils        as U
 

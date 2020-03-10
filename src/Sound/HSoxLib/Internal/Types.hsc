@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -Wno-identities         #-}
 
 -- | Do not use this module, see 'Sound.HSoxLib.Types' instead
-module Sound.HSoxLib.Types.Internal where
+module Sound.HSoxLib.Internal.Types where
 
 #include <sox.h>
 

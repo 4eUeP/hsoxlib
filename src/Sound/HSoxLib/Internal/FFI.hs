@@ -5,13 +5,13 @@
 --
 -- You don't want to use this, see "Sound.HSoxLib.FFI" instead. Or other more
 -- higher level functions can be found in "Sound.HSoxLib".
-module Sound.HSoxLib.FFI.Internal where
+module Sound.HSoxLib.Internal.FFI where
 
 import qualified Foreign.C                    as C
 import           Foreign.Ptr                  (FunPtr, Ptr)
 
 import qualified Sound.HSoxLib.Types          as T
-import qualified Sound.HSoxLib.Types.Internal as T
+import qualified Sound.HSoxLib.Internal.Types as T
 
 -------------------------------------------------------------------------------
 -- * Misc
