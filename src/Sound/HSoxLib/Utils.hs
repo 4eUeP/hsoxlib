@@ -1,5 +1,9 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
+
 module Sound.HSoxLib.Utils
-  ( peekMaybeNull
+  ( zeroMemory
+
+  , peekMaybeNull
   , peekCDoubleNull
 
   , maybePeekCString
@@ -27,6 +31,10 @@ import           Foreign.Storable     (Storable, peek, peekElemOff)
 import           Text.Printf          (printf)
 
 import qualified Data.Vector.Storable as SV
+
+-- | Zero a structure.
+zeroMemory :: Integral b => Ptr a -> b -> IO ()
+zeroMemory dest nbytes = c_memset dest 0 (fromIntegral nbytes)
 
 -- | Read a value from the given memory location.
 --
@@ -117,12 +125,6 @@ lengthArray0WithMax maxLen marker ptr
 
 -------------------------------------------------------------------------------
 
-maybeNullPeek :: a -> Ptr b -> (Ptr b -> IO a) -> IO a
-maybeNullPeek defaultVal ptr peekfun | ptr == nullPtr = return defaultVal
-                                     | otherwise = peekfun ptr
-
--------------------------------------------------------------------------------
-
 -- | Transform time in seconds into tuple of
 -- "(hours, minutes, seconds, milliseconds)".
 --
@@ -157,3 +159,12 @@ strTime totalSeconds =
       s' :: Double
       s' = fromIntegral s + fromIntegral ms / 1000
    in printf "%02i:%02i:%05.2f" h m s'
+
+-------------------------------------------------------------------------------
+
+maybeNullPeek :: a -> Ptr b -> (Ptr b -> IO a) -> IO a
+maybeNullPeek defaultVal ptr peekfun | ptr == nullPtr = return defaultVal
+                                     | otherwise = peekfun ptr
+
+foreign import ccall unsafe "string.h memset"
+  c_memset :: Ptr a -> C.CInt -> C.CSize -> IO ()
