@@ -4,6 +4,9 @@ module Sound.HSoxLib
 
   , FFI.withSox
 
+  -- * Format
+  , module Sound.HSoxLib.Format
+
   -- * Information
   , module Sound.HSoxLib.Information
 
@@ -13,4 +16,5 @@ module Sound.HSoxLib
 
 import           Sound.HSoxLib.Effect
 import qualified Sound.HSoxLib.FFI         as FFI
+import           Sound.HSoxLib.Format
 import           Sound.HSoxLib.Information

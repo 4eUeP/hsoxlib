@@ -1,6 +1,6 @@
 module Sound.HSoxLib.FFI where
 
-import           Control.Exception          (bracket, bracket_)
+import           Control.Exception          (bracket_)
 import           Control.Monad              ((<=<))
 import qualified Foreign.C                  as C
 import qualified Foreign.ForeignPtr         as P
@@ -99,23 +99,6 @@ soxOpenRead fp sig enc ft =
   C.withCString fp $ \cfp ->
     M.maybeWith C.withCString ft $ I.c_sox_open_read cfp sig enc
 
--- | Like 'soxOpenRead', with auto close the returned handle.
---
--- If the handle is null pointer, raise an exception.
-withSoxOpenRead :: FilePath
-                -> Ptr T.SoxSignalinfo
-                -> Ptr T.SoxEncodinginfo
-                -> Maybe String
-                -> (Ptr T.SoxFormat -> IO a)
-                -> IO a
-withSoxOpenRead fp sig enc ft = bracket init' soxClose
-  where
-    init' = soxOpenRead fp sig enc ft >>= assertNotNull "soxOpenRead"
-
--- | Like 'withSoxOpenRead', but with all default options.
-simpleSoxOpenRead :: FilePath -> (Ptr T.SoxFormat -> IO a) -> IO a
-simpleSoxOpenRead fp = withSoxOpenRead fp nullPtr nullPtr Nothing
-
 -- | Reads samples from a decoding session into a sample buffer.
 -- Return a vector of samples with the number of samples decoded, or 0 for EOF.
 soxRead :: Ptr T.SoxFormat -> IO (SV.Vector T.SoxSample, C.CSize)
@@ -135,18 +118,6 @@ soxRead fmtPtr = do
 soxFindComment :: Ptr T.SoxComments -> String -> IO (Maybe String)
 soxFindComment ptr key =
   C.withCString key $ U.maybePeekCString <=< I.c_sox_find_comment ptr
-
--- | Like 'soxFindComment', with an extra function to parse the result.
-soxReadComments :: Ptr T.SoxComments
-                -> (String -> Maybe a)
-                -- ^ Functin to parse the value that returned from
-                -- 'soxFindComment'.
-                -> String
-                -- ^ Key passed to 'I.soxFindComment'.
-                -> IO (Maybe a)
-soxReadComments ptr rd key = do
-  mval <- soxFindComment ptr key
-  return $ mval >>= rd
 
 -------------------------------------------------------------------------------
 -- * Write
@@ -176,29 +147,6 @@ soxOpenWrite fp sig enc ft oob f =
   C.withCString fp $ \cfp ->
     M.maybeWith C.withCString ft $ \cft ->
       I.c_sox_open_write cfp sig enc cft oob f
-
--- | Like 'soxOpenWrite', with auto close the returned handle.
---
--- If the handle is null pointer, raise an exception.
-withSoxOpenWrite :: FilePath
-                 -> Ptr T.SoxSignalinfo
-                 -> Ptr T.SoxEncodinginfo
-                 -> Maybe String
-                 -> Ptr T.SoxOOB
-                 -> FunPtr (T.CFilePath -> IO Bool)
-                 -> (Ptr T.SoxFormat -> IO a)
-                 -> IO a
-withSoxOpenWrite fp sig enc ft oob func = bracket init' soxClose
-  where
-    init' = soxOpenWrite fp sig enc ft oob func >>= assertNotNull "soxOpenWrite"
-
--- | OpenWrite with default options.
-simpleSoxOpenWrite :: FilePath
-                   -> Ptr T.SoxSignalinfo
-                   -> (Ptr T.SoxFormat -> IO a)
-                   -> IO a
-simpleSoxOpenWrite fp p =
-  withSoxOpenWrite fp p nullPtr Nothing nullPtr nullFunPtr
 
 -- | Writes samples to an encoding session from a sample buffer.
 soxWrite :: Ptr T.SoxFormat

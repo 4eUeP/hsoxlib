@@ -5,9 +5,6 @@ module Sound.HSoxLib.Information
   , encGetter
   , commentsGetter
 
-  -- * Example
-  -- $Example
-
   -- * Getters
   -- $getters
 
@@ -27,7 +24,9 @@ module Sound.HSoxLib.Information
   , tracknumberGetter
 
   -- * Helpers
+
   , calcDuration
+  , soxReadComments
   ) where
 
 import           Control.Applicative  (liftA3)
@@ -36,7 +35,7 @@ import           Foreign.Ptr          (Ptr)
 import           Foreign.Storable     (peek)
 import           Text.Read            (readMaybe)
 
-import qualified Sound.HSoxLib.FFI    as I
+import qualified Sound.HSoxLib.FFI    as FFI
 import qualified Sound.HSoxLib.Types  as T
 
 -------------------------------------------------------------------------------
@@ -65,37 +64,7 @@ commentsGetter rd key = ReaderT readComments
   where
    readComments fmtptr = do
      p <- T.getSoxCommentsPtr fmtptr
-     I.soxReadComments p rd key
-
-{- $Example
-> import qualified Sound.HSoxLib.FFI         as FFI
-> import qualified Sound.HSoxLib.Information as Sox
-> import qualified Sound.HSoxLib.Types       as T
->
-> data AudioTrack =
->   AudioTrack { artist         :: Maybe String
->              , album          :: Maybe String
->              , sampleRate     :: Maybe Double
->              , sampleEncoding :: T.SoxEncoding
->              } deriving Show
->
-> audioTrackGetter :: Sox.AudioTrackGetter AudioTrack
-> audioTrackGetter =
->   AudioTrack <$> Sox.artistGetter
->              <*> Sox.albumGetter
->              <*> Sox.sampleRateGetter
->              <*> Sox.encodingGetter
->
-> getAudioTrack :: IO AudioTrack
-> getAudioTrack =
->   let filepath = "/home/username/Music/test.flac"
->    in FFI.simpleSoxOpenRead filepath $ Sox.runGetter audioTrackGetter
->
-> main :: IO ()
-> main = FFI.withSox $ do
->   audioTrack <- getAudioTrack
->   print audioTrack
--}
+     soxReadComments p rd key
 
 -------------------------------------------------------------------------------
 
@@ -149,3 +118,15 @@ tracknumberGetter = commentsGetter readMaybe "tracknumber"
 -- | Calculate audio's duration in seconds.
 calcDuration :: (Integral a1, Integral a2, Fractional b) => a1 -> a2 -> b -> b
 calcDuration len channels rate = fromIntegral len / fromIntegral channels / rate
+
+-- | Find file's metadata, pass it to an parser function.
+soxReadComments :: Ptr T.SoxComments
+                -> (String -> Maybe a)
+                -- ^ Functin to parse the value that returned from
+                -- 'FFI.soxFindComment'.
+                -> String
+                -- ^ Key passed to 'FFI.soxFindComment'.
+                -> IO (Maybe a)
+soxReadComments ptr rd key = do
+  mval <- FFI.soxFindComment ptr key
+  return $ mval >>= rd
