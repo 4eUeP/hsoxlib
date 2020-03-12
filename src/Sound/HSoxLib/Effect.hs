@@ -12,7 +12,7 @@ module Sound.HSoxLib.Effect
 
   , withSoxCreateEffChain
   , autoEffect
-  , autoEffect'
+  , autoEffect0
 
   -- * Callbacks & Helpers
 
@@ -68,7 +68,7 @@ autoEffect chain i o name l poptions = bracket init' quit' action
     h = FFI.assertSucc "soxAddEffect"
     w = FFI.assertSucc "soxEffectOptions"
 
-autoEffect' :: Ptr T.SoxEffectsChain
+autoEffect0 :: Ptr T.SoxEffectsChain
              -- ^ Effects chain to which effect should be added.
              -> Ptr T.SoxSignalinfo
              -- ^ Input format.
@@ -79,6 +79,6 @@ autoEffect' :: Ptr T.SoxEffectsChain
              -> [C.CString]
              -- ^ Array of command-line options.
              -> IO ()
-autoEffect' chain i o name options =
+autoEffect0 chain i o name options =
   let l = fromIntegral $ length options
    in M.withArray options $ autoEffect chain i o name l
