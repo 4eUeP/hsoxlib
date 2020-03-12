@@ -8,6 +8,7 @@ maintainer: "mu <laxcatmu@gmail.com>"
 
 extra-source-files:
   - README.md
+  - csrc/readme.md
   - ChangeLog.md
 
 synopsis: Haskell binding to libsox.
