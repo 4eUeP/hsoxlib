@@ -1,7 +1,9 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Sound.HSoxLib.Utils
-  ( zeroMemory
+  ( newCopy
+  , withCopy
+  , zeroMemory
 
   , peekMaybeNull
   , peekCDoubleNull
@@ -27,14 +29,29 @@ import qualified Foreign.C            as C
 import qualified Foreign.ForeignPtr   as P
 import qualified Foreign.Marshal      as M
 import           Foreign.Ptr          (Ptr, nullPtr)
-import           Foreign.Storable     (Storable, peek, peekElemOff)
+import           Foreign.Storable     (Storable (sizeOf), peek, peekElemOff)
 import           Text.Printf          (printf)
 
 import qualified Data.Vector.Storable as SV
 
 -- | Zero a structure.
-zeroMemory :: Integral b => Ptr a -> b -> IO ()
-zeroMemory dest nbytes = c_memset dest 0 (fromIntegral nbytes)
+zeroMemory :: Ptr a -> Int -> IO ()
+zeroMemory dest = M.fillBytes dest 0
+
+-- | The combination of 'M.alloca' and 'M.copyBytes'.
+withCopy :: forall a b. Storable a => Ptr a -> (Ptr a -> IO b) -> IO b
+withCopy src f =
+  M.alloca $ \ptr -> do
+    M.copyBytes ptr src (sizeOf (undefined :: a))
+    r <- f ptr
+    return r
+
+-- | The combination of 'M.malloc' and 'M.copyBytes'.
+newCopy :: forall a. Storable a => Ptr a -> IO (Ptr a)
+newCopy src = do
+  dest <- M.malloc
+  M.copyBytes dest src (sizeOf (undefined :: a))
+  return dest
 
 -- | Read a value from the given memory location.
 --
@@ -165,6 +182,3 @@ strTime totalSeconds =
 maybeNullPeek :: a -> Ptr b -> (Ptr b -> IO a) -> IO a
 maybeNullPeek defaultVal ptr peekfun | ptr == nullPtr = return defaultVal
                                      | otherwise = peekfun ptr
-
-foreign import ccall unsafe "string.h memset"
-  c_memset :: Ptr a -> C.CInt -> C.CSize -> IO ()

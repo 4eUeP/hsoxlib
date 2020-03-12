@@ -197,7 +197,8 @@ soxAddEffect :: Ptr T.SoxEffectsChain
              -> Ptr T.SoxEffect
              -- ^ Effect to be added.
              -> Ptr T.SoxSignalinfo
-             -- ^ Input format.
+             -- ^ Input format. The element which this pointer point to may be
+             -- modified.
              -> Ptr T.SoxSignalinfo
              -- ^ Output format.
              -> IO T.SoxError
