@@ -1,15 +1,21 @@
 -- | API for using libSoX file formats.
 module Sound.HSoxLib.Format
-  ( FFI.soxOpenRead
+  ( -- * Read
+    FFI.soxOpenRead
   , FFI.soxRead
-  , FFI.soxOpenWrite
-  , FFI.soxWrite
-
   , withSoxOpenRead
   , simpleSoxOpenRead
+
+  -- * Write
+  , FFI.soxOpenWrite
+  , FFI.soxWrite
   , withSoxOpenWrite
   , simpleSoxOpenWrite
 
+  -- * Helper functions
+  , FFI.soxClose
+  , FFI.tryDevice
+  , FFI.deviceName
   ) where
 
 import           Control.Exception   (bracket)
