@@ -1,6 +1,5 @@
 module Main (main) where
 
-import           Data.Maybe          (fromMaybe)
 import           System.Environment  (getArgs)
 
 import qualified Sound.HSoxLib       as Sox
