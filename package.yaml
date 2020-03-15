@@ -6,20 +6,20 @@ license-file: LICENSE
 author: "mu <laxcatmu@gmail.com>"
 maintainer: "mu <laxcatmu@gmail.com>"
 
-extra-source-files:
-  - README.md
-  - csrc/readme.md
-  - ChangeLog.md
-
-synopsis: Haskell binding to libsox.
-category: Sound, Audio, Foreign
+synopsis: Haskell bindings to libsox.
+category: Sound, Foreign
 
 description: Please see the README on Github at <https://github.com/4eUeP/hsoxlib#readme>
 
 dependencies:
-  - base >= 4.11 && < 10
-  - vector
-  - mtl
+  - base >= 4.11 && < 5
+  - vector >= 0.12 && < 0.13
+  - mtl >= 2.2 && < 2.3
+
+extra-doc-files:
+  - README.md
+  - csrc/readme.md
+  - ChangeLog.md
 
 ghc-options:
   - -Wall

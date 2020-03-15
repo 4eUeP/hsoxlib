@@ -4,7 +4,7 @@ HSoxLib
 Haskell bindings to [LibSoX](http://sox.sourceforge.net/),
 the Swiss Army knife of sound processing programs.
 
-Tested on Debian bullseye with libsox 14.4.2 and gcc 9.2.1 installed via `apt`.
+Tested on debian bullseye with libsox 14.4.2 and gcc 9.2.1 installed via `apt`.
 
 **Warning: this library is unofficially and still in development.**
 
@@ -18,7 +18,17 @@ simply install it by:
 apt-get install libsox-dev
 ```
 
-#### Gettings audio file's information
+Check version number of libsox you have:
+
+(the version should no less than `14.4.0`)
+
+```haskell
+>>> import Sound.HSoxLib
+>>> soxVersion
+"14.4.2"
+```
+
+#### Getting audio file's information
 
 ```haskell
 import qualified Sound.HSoxLib       as Sox
