@@ -22,12 +22,8 @@ import qualified Sound.HSoxLib.Utils as U
 
 -------------------------------------------------------------------------------
 
-type FileType = String
-
 type CFileType = C.CString
-
 type CFilePath = C.CString
-
 type SoxSample = SoxInt32
 type SoxComments = [String]
 
@@ -84,7 +80,7 @@ data SoxFormat =
             , fmtEncodinginfo :: SoxEncodinginfo
             -- ^ Encoding specifications for reader (decoder) or
             -- writer (encoder).
-            , fmtFiletype     :: FileType
+            , fmtFiletype     :: String
             -- ^ Type of file, as determined by header inspection or libmagic.
             , fmtOOB          :: SoxOOB
             -- ^ Out-of-band data.
